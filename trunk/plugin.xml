@@ -17,6 +17,18 @@
 			id="br.ufal.cideei.commands.ei.uv" 
 			name="Compute EI (UV)">
 		</command>
+		
+		<command categoryId="a"
+			description="Computes emergent interface for the coa analysis" 
+			id="br.ufal.cideei.commands.ei.coa"
+			name="Compute EI (CoA)">
+		</command>
+		
+		<command categoryId="a"
+			description="Computes emergent interface for the bfa analysis" 
+			id="br.ufal.cideei.commands.ei.bfa"
+			name="Compute EI (BFA)">
+		</command>
 	</extension>
 
 	<extension point="org.eclipse.ui.handlers">
@@ -27,6 +39,14 @@
 		<handler class="br.ufal.cideei.handlers2.UninitializedVariablesHandler"
 			commandId="br.ufal.cideei.commands.ei.uv" name="Handler for uv command">
 		</handler>
+		
+		<handler class="br.ufal.cideei.handlers2.ChainOfAssignments"
+			commandId="br.ufal.cideei.commands.ei.coa" name="Handler for coa command">
+		</handler>
+		
+		<handler class="br.ufal.cideei.handlers2.BrokenFlow"
+			commandId="br.ufal.cideei.commands.ei.bfa" name="Handler for bfa command">
+		</handler>
 	</extension>
 
 	<extension point="org.eclipse.ui.menus">
@@ -36,6 +56,14 @@
 
 		<menuContribution locationURI="popup:#CompilationUnitEditorContext">			
 			<command commandId="br.ufal.cideei.commands.ei.uv"/>
+		</menuContribution>
+		
+		<menuContribution locationURI="popup:#CompilationUnitEditorContext">			
+			<command commandId="br.ufal.cideei.commands.ei.coa"/>
+		</menuContribution>
+		
+		<menuContribution locationURI="popup:#CompilationUnitEditorContext">			
+			<command commandId="br.ufal.cideei.commands.ei.bfa"/>
 		</menuContribution>
 	</extension>
 

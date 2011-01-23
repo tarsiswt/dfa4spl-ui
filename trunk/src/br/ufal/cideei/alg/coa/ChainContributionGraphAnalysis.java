@@ -65,7 +65,6 @@ public class ChainContributionGraphAnalysis extends LiftedReachingDefinitions {
 	public ChainContributionGraphAnalysis(DirectedGraph<Unit> graph, Collection<Set<String>> configurations, AssignStmt focus) {
 		super(graph, configurations);
 		this.focus = focus;
-		focusChain.add(focus);
 		this.chainContributionGraph = new DefaultDirectedWeightedGraph<Unit, DefaultWeightedEdge>(new ClassBasedEdgeFactory<Unit, DefaultWeightedEdge>(
 				DefaultWeightedEdge.class));
 	}
@@ -77,8 +76,8 @@ public class ChainContributionGraphAnalysis extends LiftedReachingDefinitions {
 	 * br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions#gen
 	 * (soot.toolkits.scalar.FlowSet, soot.Unit, soot.toolkits.scalar.FlowSet)
 	 */
-	protected void gen(FlowSet source, Unit unit, FlowSet dest) {
-		super.gen(source, unit, dest);
+	protected void gen(FlowSet source, Unit unit, FlowSet dest, Set<String> configuration) {
+		super.gen(source, unit, dest, configuration);
 		if (unit instanceof AssignStmt) {
 			this.chainContributionGraph.addVertex(unit);
 
@@ -141,7 +140,9 @@ public class ChainContributionGraphAnalysis extends LiftedReachingDefinitions {
 				}
 			}
 
-			focusChain.add(unit);
+			if (focusChain.contains(assignmentInSource) || assignmentInSource.equals(focus)) {
+				focusChain.add(unit);
+			}
 		}
 	}
 

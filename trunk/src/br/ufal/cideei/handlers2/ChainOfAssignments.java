@@ -1,5 +1,8 @@
 package br.ufal.cideei.handlers2;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,7 +10,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -24,21 +26,25 @@ import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.jgrapht.ext.DOTExporter;
+import org.jgrapht.ext.IntegerNameProvider;
+import org.jgrapht.graph.DefaultDirectedWeightedGraph;
+import org.jgrapht.graph.DefaultWeightedEdge;
 
 import soot.Body;
 import soot.G;
-import soot.Local;
-import soot.PackManager;
-import soot.PatchingChain;
 import soot.SootMethod;
 import soot.Unit;
 import soot.ValueBox;
-import soot.grimp.Grimp;
-import soot.grimp.GrimpBody;
+import soot.jimple.AssignStmt;
 import soot.jimple.DefinitionStmt;
+import soot.jimple.GotoStmt;
+import soot.jimple.toolkits.base.Aggregator;
 import soot.tagkit.Tag;
 import soot.toolkits.graph.BriefUnitGraph;
 import soot.toolkits.scalar.FlowSet;
+import br.ufal.cideei.alg.bfa.BrokenFlowAnalysis;
+import br.ufal.cideei.alg.coa.ChainContributionGraphAnalysis;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
 import br.ufal.cideei.features.IFeatureExtracter;
 import br.ufal.cideei.soot.SootManager;
@@ -50,7 +56,9 @@ import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
 import br.ufal.cideei.ui.EmergentPopup;
 import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
-import br.ufal.cideei.util.Pair;
+import br.ufal.cideei.util.graph.VertexLineNameProvider;
+import br.ufal.cideei.util.graph.VertexNameFilterProvider;
+import br.ufal.cideei.util.graph.WeighEdgeNameProvider;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
 
 /**
@@ -59,7 +67,7 @@ import br.ufal.cideei.visitors.SelectionNodesVisitor;
  * @author Társis
  * 
  */
-public class ReachingDefinitionsHandler extends AbstractHandler {
+public class ChainOfAssignments extends AbstractHandler {
 
 	/*
 	 * (non-Javadoc)
@@ -147,42 +155,68 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			/*
 			 * TODO: Check the real uses of this.
 			 */
+			// SootManager.runPacks(extracter);
+			// Map options = new HashMap();
+			// options.put("only-stack-locals", "true");
+			// options.put("enabled", "true");
+			// Aggregator.v().transform(body, "", options);
 
 			/*
 			 * Instrumento the Jimple in-memory code.
 			 */
-
-			// GrimpBody newBody = Grimp.v().newBody(sootMethod);
-			// UnitUtil.serializeBody(Grimp.v().newBody(body,""),
-			// "c:\\tcc\\body.grimp");
-			// body = Grimp.v().newBody(body,"");
-			// System.out.println(body.getClass());
-			// PatchingChain<Unit> units = body.getUnits();
-			// for (Unit u : units) {
-			// System.out.println(u + " :: " + u.getClass());
-			// }
-
 			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
 			instrumentorTransformer.transform2(body, correspondentClasspath);
 
 			FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
 
 			/*
-			 * Build CFG and run the analysis.
+			 * Build CFG.
 			 */
 			BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
-			LiftedReachingDefinitions reachingDefinitions = new LiftedReachingDefinitions(bodyGraph, bodyFeatureTag.getFeatures());
-			reachingDefinitions.execute();
 
-			/*
-			 * Iterate over the analysis results and generate a map from which
-			 * the message will be built.
-			 */
-			Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
+			AssignStmt focus = null;
+			for (Unit unit : unitsInSelection) {
+				if (unit instanceof AssignStmt) {
+					focus = (AssignStmt) unit;
+				}
+			}
+			FeatureTag<String> focusTag = (FeatureTag<String>) focus.getTag("FeatureTag");
 
-			String message = createMessage(createProvidesConfigMap);
+			ChainContributionGraphAnalysis ccgAnalysis = new ChainContributionGraphAnalysis(bodyGraph, bodyFeatureTag.getFeatures(), focus);
+			ccgAnalysis.execute();
 
+			DefaultDirectedWeightedGraph<Unit, DefaultWeightedEdge> ccg = ccgAnalysis.getContributionChainGraph();
+			Collection<AssignStmt> focusChain = ccgAnalysis.getFocusChain();
+
+			String message = createMessage(focusChain, focusTag, focus);
 			EmergentPopup.pop(shell, message);
+
+			try {
+				String userHomeDir = System.getProperty("user.home");
+
+				DOTExporter<Unit, DefaultWeightedEdge> completeExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexNameFilterProvider<Unit>(
+						jdtCompilationUnit), null, new WeighEdgeNameProvider<DefaultWeightedEdge>(ccg));
+
+				FileWriter fileWriterForCompleteExporter = new FileWriter(new File(userHomeDir + File.separator + "comp.dot"));
+				completeExporter.export(fileWriterForCompleteExporter, ccg);
+				fileWriterForCompleteExporter.close();
+
+				DOTExporter<Unit, DefaultWeightedEdge> bodyExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexNameFilterProvider<Unit>(
+						jdtCompilationUnit), null, new WeighEdgeNameProvider<DefaultWeightedEdge>(ccg));
+
+				DOTExporter<Unit, DefaultWeightedEdge> simplifiedExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexLineNameProvider<Unit>(
+						jdtCompilationUnit), null, null);
+
+				FileWriter fileWriterForSimplifiedExporter = new FileWriter(new File(userHomeDir + File.separator + "simp.dot"));
+				simplifiedExporter.export(fileWriterForSimplifiedExporter, ccg);
+				fileWriterForSimplifiedExporter.close();
+
+				UnitUtil.serializeBody(body, userHomeDir + File.separator + "body.jimple");
+				UnitUtil.serializeGraph(body, userHomeDir + File.separator + "body.dot");
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
@@ -192,101 +226,26 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		return null;
 	}
 
-	private String createMessage(Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap) {
-		StringBuilder stringBuilder = new StringBuilder();
-		boolean appendedConfiguration = false;
-		for (Entry<Pair<Unit, Set<String>>, Set<Unit>> provideEntry : createProvidesConfigMap.entrySet()) {
-			Pair<Unit, Set<String>> key = provideEntry.getKey();
-			Unit definition = key.getFirst();
-			FeatureTag definitionTag = (FeatureTag) definition.getTag("FeatureTag");
-			Set<String> configuration = key.getSecond();
+	private String createMessage(Collection<AssignStmt> focusChain, FeatureTag<String> focusTag, Unit focus) {
+		/*
+		 * TODO: lazy initialize builder
+		 */
+		StringBuilder builder = new StringBuilder(focus + " chains towards \n");
+		for (Unit unitInChain : focusChain) {
+			FeatureTag<String> tag = (FeatureTag<String>) unitInChain.getTag("FeatureTag");
 
-			Set<Unit> reachedUses = provideEntry.getValue();
-			for (Unit reachedUnit : reachedUses) {
-				FeatureTag reachedUnitTag = (FeatureTag) reachedUnit.getTag("FeatureTag");
-				Set<String> difference = new HashSet<String>(reachedUnitTag);
-				difference.removeAll(definitionTag);
+			Set<String> difference = new HashSet<String>(tag);
+			difference.removeAll(focusTag);
 
-				if (difference.size() == 0) {
-					continue;
-				}
-
-				if (!appendedConfiguration) {
-					stringBuilder.append(configuration);
-					stringBuilder.append('\n');
-					appendedConfiguration = true;
-				}
-				stringBuilder.append("Provides " + definition + " to\n");
-
-				for (String feature : difference) {
-					stringBuilder.append("line " + ASTNodeUnitBridge.getLineFromUnit(reachedUnit));
-					stringBuilder.append(" [feature " + feature + "]\n");
-				}
+			if (difference.size() == 0) {
+				continue;
 			}
-			appendedConfiguration = false;
-		}
-		return stringBuilder.toString();
-	}
 
-	private Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap(Collection<Unit> unitsInSelection, LiftedReachingDefinitions reachingDefinitions,
-			Body body) {
-		Map<Pair<Unit, Set<String>>, Set<Unit>> unitConfigurationMap = new HashMap<Pair<Unit, Set<String>>, Set<Unit>>();
-
-		for (Unit unitFromSelection : unitsInSelection) {
-			if (unitFromSelection instanceof DefinitionStmt) {
-
-				/*
-				 * exclude definitions when it's $temp on the leftOp.
-				 */
-				DefinitionStmt definition = (DefinitionStmt) unitFromSelection;
-				Local leftOp = (Local) definition.getLeftOp();
-				if (leftOp.getName().charAt(0) == '$') {
-					continue;
-				}
-
-				// for every unit in the body...
-				Iterator<Unit> iterator = body.getUnits().snapshotIterator();
-				while (iterator.hasNext()) {
-					Unit nextUnit = iterator.next();
-					LiftedFlowSet<Collection<Set<Object>>> liftedFlowAfter = reachingDefinitions.getFlowAfter(nextUnit);
-					Set<String>[] configurations = liftedFlowAfter.getConfigurations();
-					FlowSet[] lattices = liftedFlowAfter.getLattices();
-					// and for every configuration...
-					for (int configurationIndex = 0; configurationIndex < configurations.length; configurationIndex++) {
-						FlowSet flowSet = lattices[configurationIndex];
-						Set<String> currConfiguration = configurations[configurationIndex];
-						FeatureTag nextUnitTag = (FeatureTag) nextUnit.getTag("FeatureTag");
-
-						// if the unit belongs to the current configuration...
-						if (nextUnitTag.belongsToConfiguration(currConfiguration)) {
-
-							// if the definition reaches this unit...
-							if (flowSet.contains(definition)) {
-								List<ValueBox> useBoxes = nextUnit.getUseBoxes();
-								for (ValueBox vbox : useBoxes) {
-									/*
-									 * and the definition is used, add to the
-									 * map...
-									 */
-									if (vbox.getValue().equivTo(leftOp)) {
-										Pair<Unit, Set<String>> currentPair = new Pair<Unit, Set<String>>(definition, currConfiguration);
-										Set<Unit> unitConfigurationReachesSet = unitConfigurationMap.get(currentPair);
-
-										if (unitConfigurationReachesSet == null) {
-											unitConfigurationReachesSet = new HashSet<Unit>();
-											unitConfigurationReachesSet.add(nextUnit);
-											unitConfigurationMap.put(currentPair, unitConfigurationReachesSet);
-										} else {
-											unitConfigurationReachesSet.add(nextUnit);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
+			for (String feature : difference) {
+				builder.append("line " + ASTNodeUnitBridge.getLineFromUnit(unitInChain) + " [feature " + feature + "]\n");
 			}
 		}
-		return unitConfigurationMap;
+
+		return builder.toString();
 	}
 }
