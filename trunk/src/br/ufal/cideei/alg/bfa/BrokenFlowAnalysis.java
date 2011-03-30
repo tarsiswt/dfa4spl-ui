@@ -8,46 +8,57 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import soot.Unit;
 import soot.jimple.AssignStmt;
 import soot.jimple.GotoStmt;
 import soot.toolkits.graph.DirectedGraph;
 import soot.toolkits.scalar.FlowSet;
 import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
+import br.ufal.cideei.soot.instrument.FeatureTag;
+import br.ufal.cideei.util.Pair;
 
 public class BrokenFlowAnalysis extends LiftedReachingDefinitions {
 
 	/** The focus. */
-	private AssignStmt focus;
+	private Set<AssignStmt> focuses;
 
-	private Set<GotoStmt> focusedGotos;
+	private Map<Pair<AssignStmt, Set<String>>, Set<GotoStmt>> configMap;
 
-	public Set<GotoStmt> getFocusedGotos() {
-		return Collections.unmodifiableSet(focusedGotos);
+	public Map<Pair<AssignStmt, Set<String>>, Set<GotoStmt>> getConfigMap() {
+		return configMap;
 	}
 
-	private Map<GotoStmt, Set<AssignStmt>> gotoMap;
-
-	public Map<GotoStmt, Set<AssignStmt>> getGotoMap() {
-		return Collections.unmodifiableMap(gotoMap);
-	}
-
-	public BrokenFlowAnalysis(DirectedGraph<Unit> graph, Collection<Set<String>> configurations, AssignStmt focus) {
+	public BrokenFlowAnalysis(DirectedGraph<Unit> graph, Collection<Set<String>> configurations, Set<AssignStmt> focuses) {
 		super(graph, configurations);
-		this.focus = focus;
-		this.gotoMap = new HashMap<GotoStmt, Set<AssignStmt>>();
-		this.focusedGotos = new HashSet<GotoStmt>();
+		this.focuses = focuses;
+		configMap = new HashMap<Pair<AssignStmt, Set<String>>, Set<GotoStmt>>();
 	}
 
 	protected void gen(FlowSet source, Unit unit, FlowSet dest, Set<String> configuration) {
 		super.gen(source, unit, dest, configuration);
 		if (unit instanceof GotoStmt) {
 			GotoStmt gotoStmt = (GotoStmt) unit;
-			Iterator destIterator = dest.iterator();
-			Set<AssignStmt> setOfassignments = new HashSet<AssignStmt>(dest.toList());
-			gotoMap.put(gotoStmt, setOfassignments);
-			if (dest.contains(focus)) {
-				focusedGotos.add(gotoStmt);
+			for (AssignStmt focus : focuses) {
+				if (dest.contains(focus)) {
+					Set<String> difference = new HashSet<String>((FeatureTag)gotoStmt.getTag("FeatureTag"));
+					difference.removeAll((FeatureTag)focus.getTag("FeatureTag"));
+
+					if (difference.size() == 0) {
+						continue;
+					}
+					
+					Set<GotoStmt> set = configMap.get(configuration);
+					Pair<AssignStmt, Set<String>> pair = new Pair<AssignStmt, Set<String>>(focus,configuration);
+					if (set == null) {
+						set = new HashSet<GotoStmt>();
+						set.add(gotoStmt);
+						configMap.put(pair, set);
+					} else {
+						set.add(gotoStmt);
+					}
+				}
 			}
 		}
 	}

@@ -5,6 +5,12 @@
 		<category description="" id="a"
 			name="EI Commands">
 		</category>
+		
+		<command categoryId="a"
+			description="testing" 
+			id="br.ufal.cideei.commands.ei.tst"
+			name="TST">
+		</command>
 
 		<command categoryId="a"
 			description="Computes emergent interface for the reaching refinitions analysis" 
@@ -32,6 +38,10 @@
 	</extension>
 
 	<extension point="org.eclipse.ui.handlers">
+		<handler class="br.ufal.cideei.handlers2.TccBenchmark"
+			commandId="br.ufal.cideei.commands.ei.tst" name="Handler for rd command">
+		</handler>
+	
 		<handler class="br.ufal.cideei.handlers2.ReachingDefinitionsHandler"
 			commandId="br.ufal.cideei.commands.ei.rd" name="Handler for rd command">
 		</handler>
@@ -50,6 +60,10 @@
 	</extension>
 
 	<extension point="org.eclipse.ui.menus">
+	<menuContribution locationURI="popup:#CompilationUnitEditorContext">
+			<command commandId="br.ufal.cideei.commands.ei.tst"/>
+		</menuContribution>
+	
 		<menuContribution locationURI="popup:#CompilationUnitEditorContext">
 			<command commandId="br.ufal.cideei.commands.ei.rd"/>
 		</menuContribution>

@@ -1,5 +1,6 @@
 package br.ufal.cideei.handlers2;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,137 +60,78 @@ import br.ufal.cideei.visitors.SelectionNodesVisitor;
  * @author Társis
  * 
  */
-public class ReachingDefinitionsHandler extends AbstractHandler {
+public class TccBenchmark extends AbstractHandler {
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands
-	 * .ExecutionEvent)
-	 */
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		// TODO: this wrapping try is for debug only. remove later.
-		try {
-			/*
-			 * In order to perform analyses on the selected code, there are few
-			 * things we need to collect first in order to configure the Soot
-			 * framework environment. They are: - Which ASTNodes are in the text
-			 * selection - The casspath entry to the package root of the text
-			 * selection - The method name which contains the text selection -
-			 * The ColoredSourceFile object of the text selection.
-			 */
-			ISelection selection = HandlerUtil.getCurrentSelectionChecked(event);
-			Shell shell = HandlerUtil.getActiveShellChecked(event);
+		final int TIMES = 10;
+		List<Long> runsTimer = new ArrayList<Long>(TIMES);
+		for (int i = 0; i < TIMES; i++) {
+			long startTimer = System.currentTimeMillis();
+			try {
+				ISelection selection = HandlerUtil.getCurrentSelectionChecked(event);
+				Shell shell = HandlerUtil.getActiveShellChecked(event);
 
-			if (!(selection instanceof ITextSelection))
-				throw new ExecutionException("Not a text selection");
+				if (!(selection instanceof ITextSelection))
+					throw new ExecutionException("Not a text selection");
 
-			/*
-			 * used to find out the project name and later to create a
-			 * compilation unit from it
-			 */
-			IFile textSelectionFile = (IFile) HandlerUtil.getActiveEditorChecked(event).getEditorInput().getAdapter(IFile.class);
+				IFile textSelectionFile = (IFile) HandlerUtil.getActiveEditorChecked(event).getEditorInput().getAdapter(IFile.class);
 
-			/*
-			 * this visitor will compute the ASTNodes that were selected by the
-			 * user
-			 */
-			ITextSelection textSelection = (ITextSelection) selection;
-			SelectionNodesVisitor selectionNodesVisitor = new SelectionNodesVisitor(textSelection);
+				ITextSelection textSelection = (ITextSelection) selection;
+				SelectionNodesVisitor selectionNodesVisitor = new SelectionNodesVisitor(textSelection);
 
-			/*
-			 * Now we need to create a compilation unit for the file, and then
-			 * parse it to generate an AST in which we will perform our
-			 * analyses.
-			 * 
-			 * TODO: is there a different way of doing this? Maybe eclipse has a
-			 * copy of the compilation unit in memory already?
-			 */
-			ICompilationUnit compilationUnit = JavaCore.createCompilationUnitFrom(textSelectionFile);
-			ASTParser parser = ASTParser.newParser(AST.JLS3);
-			parser.setSource(compilationUnit);
-			parser.setKind(ASTParser.K_COMPILATION_UNIT);
-			parser.setResolveBindings(true);
-			CompilationUnit jdtCompilationUnit = (CompilationUnit) parser.createAST(null);
-			jdtCompilationUnit.accept(selectionNodesVisitor);
+				ICompilationUnit compilationUnit = JavaCore.createCompilationUnitFrom(textSelectionFile);
+				ASTParser parser = ASTParser.newParser(AST.JLS3);
+				parser.setSource(compilationUnit);
+				parser.setKind(ASTParser.K_COMPILATION_UNIT);
+				parser.setResolveBindings(true);
+				CompilationUnit jdtCompilationUnit = (CompilationUnit) parser.createAST(null);
+				jdtCompilationUnit.accept(selectionNodesVisitor);
 
-			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
-			System.out.println("Selection" + selectionNodes);
+				Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
+				System.out.println("Selection" + selectionNodes);
 
-			/*
-			 * Provides a way to query for features from CIDE.
-			 */
-			IFeatureExtracter extracter = CIDEFeatureExtracterFactory.getInstance().newExtracter();
+				IFeatureExtracter extracter = CIDEFeatureExtracterFactory.getInstance().newExtracter();
 
-			/*
-			 * Initialize and configure Soot's options and find out which method
-			 * contains the selection
-			 */
-			String correspondentClasspath = MethodDeclarationSootMethodBridge.getCorrespondentClasspath(textSelectionFile);
-			SootManager.configure(correspondentClasspath);
-			MethodDeclaration methodDeclaration = MethodDeclarationSootMethodBridge.getParentMethod(selectionNodes.iterator().next());
-			String declaringMethodClass = methodDeclaration.resolveBinding().getDeclaringClass().getQualifiedName();
-			MethodDeclarationSootMethodBridge mdsm = new MethodDeclarationSootMethodBridge(methodDeclaration);
-			SootMethod sootMethod = SootManager.getMethodBySignature(declaringMethodClass, mdsm.getSootMethodSubSignature());
-			Body body = sootMethod.retrieveActiveBody();
+				String correspondentClasspath = MethodDeclarationSootMethodBridge.getCorrespondentClasspath(textSelectionFile);
+				SootManager.configure(correspondentClasspath);
+				MethodDeclaration methodDeclaration = MethodDeclarationSootMethodBridge.getParentMethod(selectionNodes.iterator().next());
+				String declaringMethodClass = methodDeclaration.resolveBinding().getDeclaringClass().getQualifiedName();
+				MethodDeclarationSootMethodBridge mdsm = new MethodDeclarationSootMethodBridge(methodDeclaration);
+				SootMethod sootMethod = SootManager.getMethodBySignature(declaringMethodClass, mdsm.getSootMethodSubSignature());
+				Body body = sootMethod.retrieveActiveBody();
 
-			/*
-			 * Maps ASTNodes to Units based on the line no.
-			 */			
-			Collection<Unit> unitsInSelection = ASTNodeUnitBridge.getUnitsFromLines(ASTNodeUnitBridge.getLinesFromASTNodes(selectionNodes, jdtCompilationUnit),
-					body);
-			if (unitsInSelection.isEmpty()) {
-				System.out.println("the selection doesn't map to any Soot Unit");
-				return null;
+				Collection<Unit> unitsInSelection = ASTNodeUnitBridge.getUnitsFromLines(ASTNodeUnitBridge.getLinesFromASTNodes(selectionNodes,
+						jdtCompilationUnit), body);
+				if (unitsInSelection.isEmpty()) {
+					System.out.println("the selection doesn't map to any Soot Unit");
+					return null;
+				}
+
+				FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
+				instrumentorTransformer.transform2(body, correspondentClasspath);
+
+				FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
+
+				BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
+				LiftedReachingDefinitions reachingDefinitions = new LiftedReachingDefinitions(bodyGraph, bodyFeatureTag.getFeatures());
+				reachingDefinitions.execute();
+
+				Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
+				System.out.println(createProvidesConfigMap);
+				String message = createMessage(createProvidesConfigMap);
+
+				// EmergentPopup.pop(shell, message);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			} finally {
+				G.v().reset();
 			}
-
-			/*
-			 * TODO: Check the real uses of this.
-			 */
-
-			/*
-			 * Instrumento the Jimple in-memory code.
-			 */
-
-			// GrimpBody newBody = Grimp.v().newBody(sootMethod);
-			// UnitUtil.serializeBody(Grimp.v().newBody(body,""),
-			// "c:\\tcc\\body.grimp");
-			// body = Grimp.v().newBody(body,"");
-			// System.out.println(body.getClass());
-			// PatchingChain<Unit> units = body.getUnits();
-			// for (Unit u : units) {
-			// System.out.println(u + " :: " + u.getClass());
-			// }
-
-			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
-			instrumentorTransformer.transform2(body, correspondentClasspath);
-
-			FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
-
-			/*
-			 * Build CFG and run the analysis.
-			 */
-			BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
-			LiftedReachingDefinitions reachingDefinitions = new LiftedReachingDefinitions(bodyGraph, bodyFeatureTag.getFeatures());
-			reachingDefinitions.execute();
-
-			/*
-			 * Iterate over the analysis results and generate a map from which
-			 * the message will be built.
-			 */
-			Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
-			System.out.println(createProvidesConfigMap);
-			String message = createMessage(createProvidesConfigMap);
-
-			EmergentPopup.pop(shell, message);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		} finally {
-			G.v().reset();
+			long estimatedTime = System.currentTimeMillis() - startTimer;
+			runsTimer.add(estimatedTime);
 		}
-
+		System.out.println(runsTimer);
 		return null;
 	}
 
@@ -213,7 +155,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				}
 
 				if (!appendedConfiguration) {
-					stringBuilder.append('\n');
+					stringBuilder.append("\n\n");
 					stringBuilder.append(configuration);
 					stringBuilder.append('\n');
 					appendedConfiguration = true;
@@ -244,7 +186,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				if (leftOp.getName().charAt(0) == '$') {
 					continue;
 				}
-				
+
 				System.out.println("Definition:" + definition);
 
 				// for every unit in the body...

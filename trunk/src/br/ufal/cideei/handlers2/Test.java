@@ -1,8 +1,5 @@
 package br.ufal.cideei.handlers2;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,40 +24,34 @@ import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jgrapht.ext.DOTExporter;
-import org.jgrapht.ext.IntegerNameProvider;
-import org.jgrapht.graph.DefaultDirectedWeightedGraph;
-import org.jgrapht.graph.DefaultWeightedEdge;
 
 import soot.Body;
 import soot.G;
+import soot.Local;
+import soot.PackManager;
+import soot.PatchingChain;
 import soot.SootMethod;
 import soot.Unit;
 import soot.ValueBox;
-import soot.jimple.AssignStmt;
+import soot.grimp.Grimp;
+import soot.grimp.GrimpBody;
 import soot.jimple.DefinitionStmt;
-import soot.jimple.GotoStmt;
-import soot.jimple.toolkits.base.Aggregator;
 import soot.tagkit.Tag;
 import soot.toolkits.graph.BriefUnitGraph;
 import soot.toolkits.scalar.FlowSet;
-import br.ufal.cideei.alg.bfa.BrokenFlowAnalysis;
-import br.ufal.cideei.alg.coa.ChainContributionGraphAnalysis;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
 import br.ufal.cideei.features.IFeatureExtracter;
 import br.ufal.cideei.soot.SootManager;
 import br.ufal.cideei.soot.UnitUtil;
 import br.ufal.cideei.soot.analyses.LiftedFlowSet;
 import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
+import br.ufal.cideei.soot.analyses.reachingdefs.SimpleReachedDefinitionsAnalysis;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
 import br.ufal.cideei.ui.EmergentPopup;
 import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
 import br.ufal.cideei.util.Pair;
-import br.ufal.cideei.util.graph.VertexLineNameProvider;
-import br.ufal.cideei.util.graph.VertexNameFilterProvider;
-import br.ufal.cideei.util.graph.WeighEdgeNameProvider;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
 
 /**
@@ -69,7 +60,7 @@ import br.ufal.cideei.visitors.SelectionNodesVisitor;
  * @author Társis
  * 
  */
-public class BrokenFlow extends AbstractHandler {
+public class Test extends AbstractHandler {
 
 	/*
 	 * (non-Javadoc)
@@ -157,29 +148,25 @@ public class BrokenFlow extends AbstractHandler {
 			/*
 			 * Instrumento the Jimple in-memory code.
 			 */
+
 			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
 			instrumentorTransformer.transform2(body, correspondentClasspath);
 
 			FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
 
 			/*
-			 * Build CFG.
+			 * Build CFG and run the analysis.
 			 */
 			BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
-
-			Set<AssignStmt> focuses = new HashSet<AssignStmt>();
-			for (Unit unit : unitsInSelection) {
-				if (unit instanceof AssignStmt) {
-					focuses.add((AssignStmt) unit);
-				}
+			SimpleReachedDefinitionsAnalysis rd = new SimpleReachedDefinitionsAnalysis(bodyGraph);
+			
+			Iterator<Unit> it = bodyGraph.iterator();
+			while (it.hasNext()) {
+				Unit unit = (Unit) it.next();
+				System.out.println(unit);
+				System.out.println(rd.getFlowAfter(unit));
 			}
 
-			BrokenFlowAnalysis bfa = new BrokenFlowAnalysis(bodyGraph, bodyFeatureTag, focuses);
-			bfa.execute();
-
-			String message = createMessage(bfa, focuses);
-
-			EmergentPopup.pop(shell, message);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -190,29 +177,4 @@ public class BrokenFlow extends AbstractHandler {
 		return null;
 	}
 
-	private String createMessage(BrokenFlowAnalysis bfa, Set<AssignStmt> focuses) {
-		boolean appendedConfiguration = false;
-		StringBuilder stringBuilder = new StringBuilder();
-		Map<Pair<AssignStmt, Set<String>>, Set<GotoStmt>> configMap = bfa.getConfigMap();
-		System.out.println(configMap);
-		for (Entry<Pair<AssignStmt, Set<String>>, Set<GotoStmt>> entry : configMap.entrySet()) {
-			Pair<AssignStmt, Set<String>> pair = entry.getKey();
-			AssignStmt assignStmt = pair.getFirst();
-			Set<String> configuration = pair.getSecond();
-			Set<GotoStmt> flowBreakers = entry.getValue();
-
-			for (GotoStmt flowBreak : flowBreakers) {
-				if (!appendedConfiguration) {
-					stringBuilder.append(configuration);
-					stringBuilder.append('\n');
-					appendedConfiguration = true;
-				}
-				stringBuilder.append(assignStmt + " reaches flow break @line " + ASTNodeUnitBridge.getLineFromUnit(flowBreak) + " colored with "
-						+ flowBreak.getTag("FeatureTag") + '\n');
-			}
-			appendedConfiguration = false;
-
-		}
-		return stringBuilder.toString();
-	}
 }
