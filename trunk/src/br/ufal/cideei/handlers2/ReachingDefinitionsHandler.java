@@ -233,7 +233,9 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 	private Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap(Collection<Unit> unitsInSelection, LiftedReachingDefinitions reachingDefinitions,
 			Body body) {
 		Map<Pair<Unit, Set<String>>, Set<Unit>> unitConfigurationMap = new HashMap<Pair<Unit, Set<String>>, Set<Unit>>();
+		FeatureTag bodyFeatureTag = (FeatureTag) body.getTag("FeatureTag");
 
+		// for every unit in the selection...
 		for (Unit unitFromSelection : unitsInSelection) {
 			if (unitFromSelection instanceof DefinitionStmt) {
 				/*
@@ -241,7 +243,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				 */
 				DefinitionStmt definition = (DefinitionStmt) unitFromSelection;
 				Local leftOp = (Local) definition.getLeftOp();
-				if (leftOp.getName().charAt(0) == '$') {
+				if (leftOp.getName().contains("$")) {
 					continue;
 				}
 				
@@ -252,12 +254,13 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				while (iterator.hasNext()) {
 					Unit nextUnit = iterator.next();
 					LiftedFlowSet<Collection<Set<Object>>> liftedFlowAfter = reachingDefinitions.getFlowAfter(nextUnit);
-					Set<String>[] configurations = liftedFlowAfter.getConfigurations();
+//					Set<String>[] configurations = liftedFlowAfter.getConfigurations();
 					FlowSet[] lattices = liftedFlowAfter.getLattices();
 					// and for every configuration...
-					for (int configurationIndex = 0; configurationIndex < configurations.length; configurationIndex++) {
-						FlowSet flowSet = lattices[configurationIndex];
-						Set<String> currConfiguration = configurations[configurationIndex];
+					for (int latticeIndex = 0; latticeIndex < lattices.length; latticeIndex++) {
+						FlowSet flowSet = lattices[latticeIndex];
+//						Set<String> currConfiguration = configurations[latticeIndex];
+						Set<String> currConfiguration = bodyFeatureTag.getConfigurationForId(latticeIndex);
 						FeatureTag nextUnitTag = (FeatureTag) nextUnit.getTag("FeatureTag");
 
 						// if the unit belongs to the current configuration...
