@@ -143,7 +143,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 
 			/*
 			 * Maps ASTNodes to Units based on the line no.
-			 */			
+			 */
 			Collection<Unit> unitsInSelection = ASTNodeUnitBridge.getUnitsFromLines(ASTNodeUnitBridge.getLinesFromASTNodes(selectionNodes, jdtCompilationUnit),
 					body);
 			if (unitsInSelection.isEmpty()) {
@@ -152,23 +152,8 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			}
 
 			/*
-			 * TODO: Check the real uses of this.
+			 * Instrumento in-memory Jimple code.
 			 */
-
-			/*
-			 * Instrumento the Jimple in-memory code.
-			 */
-
-			// GrimpBody newBody = Grimp.v().newBody(sootMethod);
-			// UnitUtil.serializeBody(Grimp.v().newBody(body,""),
-			// "c:\\tcc\\body.grimp");
-			// body = Grimp.v().newBody(body,"");
-			// System.out.println(body.getClass());
-			// PatchingChain<Unit> units = body.getUnits();
-			// for (Unit u : units) {
-			// System.out.println(u + " :: " + u.getClass());
-			// }
-
 			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
 			instrumentorTransformer.transform2(body, correspondentClasspath);
 
@@ -186,7 +171,6 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 * the message will be built.
 			 */
 			Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
-			System.out.println(createProvidesConfigMap);
 			String message = createMessage(createProvidesConfigMap, textSelectionFile);
 
 			EmergentPopup.pop(shell, message);
@@ -202,7 +186,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 	private String createMessage(Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap, IFile fileSelected) {
 		StringBuilder stringBuilder = new StringBuilder();
 		boolean appendedConfiguration = false;
-		//LIBORIO
+		// LIBORIO
 		try {
 			fileSelected.deleteMarkers(FeatureMarker.FMARKER_ID, true, IResource.DEPTH_INFINITE);
 		} catch (CoreException e) {
@@ -224,7 +208,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				if (difference.size() == 0) {
 					continue;
 				}
-				//LIBORIO ------------------------
+				// LIBORIO ------------------------
 				String messageMarker = "";
 				// -------------------------------
 				if (!appendedConfiguration) {
@@ -234,24 +218,25 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 					appendedConfiguration = true;
 				}
 				stringBuilder.append("Provides " + definition + " to\n");
-				//LIBORIO ------------------------
-				messageMarker += configuration+" provides " + definition + " to ";
+				// LIBORIO ------------------------
+				messageMarker += configuration + " provides " + definition + " to ";
 				Location loc = null;
 				// -------------------------------
 				for (String feature : difference) {
-					//LIBORIO ------------------------
+					// LIBORIO ------------------------
 					loc = new Location();
 					loc.setLineNumber(new Integer(ASTNodeUnitBridge.getLineFromUnit(reachedUnit)));
 					loc.setFile(fileSelected);
 					// -------------------------------
 					stringBuilder.append("line " + loc.getLineNumber());
-					//LIBORIO ------------------------
+					// LIBORIO ------------------------
 					messageMarker += "line " + loc.getLineNumber();
 					// -------------------------------
 					stringBuilder.append(" [feature " + feature + "]\n");
-					//LIBORIO ------------------------
+					// LIBORIO ------------------------
 					messageMarker += " [feature " + feature + "]";
-					System.out.println(FeatureMarker.FMARKER_ID+" : "+configuration+" "+messageMarker+" ("+loc.getFile().getName()+") - LN: "+loc.getLineNumber());
+					System.out.println(FeatureMarker.FMARKER_ID + " : " + configuration + " " + messageMarker + " (" + loc.getFile().getName() + ") - LN: "
+							+ loc.getLineNumber());
 					FeatureMarker.createMarker(messageMarker, loc);
 					messageMarker = "";
 					messageMarker += configuration;
@@ -279,7 +264,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				if (leftOp.getName().contains("$")) {
 					continue;
 				}
-				
+
 				System.out.println("Definition:" + definition);
 
 				// for every unit in the body...
@@ -287,12 +272,14 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				while (iterator.hasNext()) {
 					Unit nextUnit = iterator.next();
 					LiftedFlowSet<Collection<Set<Object>>> liftedFlowAfter = reachingDefinitions.getFlowAfter(nextUnit);
-//					Set<String>[] configurations = liftedFlowAfter.getConfigurations();
+					// Set<String>[] configurations =
+					// liftedFlowAfter.getConfigurations();
 					FlowSet[] lattices = liftedFlowAfter.getLattices();
 					// and for every configuration...
 					for (int latticeIndex = 0; latticeIndex < lattices.length; latticeIndex++) {
 						FlowSet flowSet = lattices[latticeIndex];
-//						Set<String> currConfiguration = configurations[latticeIndex];
+						// Set<String> currConfiguration =
+						// configurations[latticeIndex];
 						Set<String> currConfiguration = bodyFeatureTag.getConfigurationForId(latticeIndex);
 						FeatureTag nextUnitTag = (FeatureTag) nextUnit.getTag("FeatureTag");
 
