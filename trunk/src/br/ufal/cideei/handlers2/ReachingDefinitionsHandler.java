@@ -13,6 +13,9 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
@@ -48,7 +51,10 @@ import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
+import br.ufal.cideei.ui.AnalysisResultView;
 import br.ufal.cideei.ui.EmergentPopup;
+import br.ufal.cideei.ui.FeatureMarker;
+import br.ufal.cideei.ui.Location;
 import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
 import br.ufal.cideei.util.Pair;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
@@ -181,7 +187,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 */
 			Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
 			System.out.println(createProvidesConfigMap);
-			String message = createMessage(createProvidesConfigMap);
+			String message = createMessage(createProvidesConfigMap, textSelectionFile);
 
 			EmergentPopup.pop(shell, message);
 		} catch (Exception ex) {
@@ -193,9 +199,16 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		return null;
 	}
 
-	private String createMessage(Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap) {
+	private String createMessage(Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap, IFile fileSelected) {
 		StringBuilder stringBuilder = new StringBuilder();
 		boolean appendedConfiguration = false;
+		//LIBORIO
+		try {
+			fileSelected.deleteMarkers(FeatureMarker.FMARKER_ID, true, IResource.DEPTH_INFINITE);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		// -------------------------------
 		for (Entry<Pair<Unit, Set<String>>, Set<Unit>> provideEntry : createProvidesConfigMap.entrySet()) {
 			Pair<Unit, Set<String>> key = provideEntry.getKey();
 			Unit definition = key.getFirst();
@@ -211,7 +224,9 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				if (difference.size() == 0) {
 					continue;
 				}
-
+				//LIBORIO ------------------------
+				String messageMarker = "";
+				// -------------------------------
 				if (!appendedConfiguration) {
 					stringBuilder.append('\n');
 					stringBuilder.append(configuration);
@@ -219,10 +234,28 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 					appendedConfiguration = true;
 				}
 				stringBuilder.append("Provides " + definition + " to\n");
-
+				//LIBORIO ------------------------
+				messageMarker += configuration+" provides " + definition + " to ";
+				Location loc = null;
+				// -------------------------------
 				for (String feature : difference) {
-					stringBuilder.append("line " + ASTNodeUnitBridge.getLineFromUnit(reachedUnit));
+					//LIBORIO ------------------------
+					loc = new Location();
+					loc.setLineNumber(new Integer(ASTNodeUnitBridge.getLineFromUnit(reachedUnit)));
+					loc.setFile(fileSelected);
+					// -------------------------------
+					stringBuilder.append("line " + loc.getLineNumber());
+					//LIBORIO ------------------------
+					messageMarker += "line " + loc.getLineNumber();
+					// -------------------------------
 					stringBuilder.append(" [feature " + feature + "]\n");
+					//LIBORIO ------------------------
+					messageMarker += " [feature " + feature + "]";
+					System.out.println(FeatureMarker.FMARKER_ID+" : "+configuration+" "+messageMarker+" ("+loc.getFile().getName()+") - LN: "+loc.getLineNumber());
+					FeatureMarker.createMarker(messageMarker, loc);
+					messageMarker = "";
+					messageMarker += configuration;
+					// -------------------------------
 				}
 			}
 			appendedConfiguration = false;

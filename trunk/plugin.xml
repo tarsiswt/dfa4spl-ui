@@ -80,5 +80,40 @@
 			<command commandId="br.ufal.cideei.commands.ei.bfa"/>
 		</menuContribution>
 	</extension>
-
+	
+	<extension point="org.eclipse.ui.views">
+		<view
+			category="CIDE EI Views"
+	    	class="br.ufal.cideei.ui.AnalysisResultView"
+	        icon="icons/sample.gif"
+	        id="analysisresult"
+	        name="CIDE EI Results">
+	    </view>
+	</extension>
+	
+	 <extension
+         id="featuremarker"
+         name="CIDE EI Marker"
+         point="org.eclipse.core.resources.markers">
+         <persistent value="true"/>
+	      <super type="org.eclipse.core.resources.marker">
+	      </super>
+	   
+   	</extension>
+   	
+   	
+	<extension point="org.eclipse.ui.ide.markerSupport">
+		<markerField 
+	      class="br.ufal.cideei.ui.FeatureField" 
+	      id="featureField" 
+	      name="Feature"> 
+		</markerField>
+       <markerContentGenerator id="analysisresultsSupport" name="Analysis Results">
+	      	<markerTypeReference id="cide_ei.featuremarker"/>
+	      	<markerFieldReference id="org.eclipse.ui.ide.severityAndDescriptionField"/>
+		    <markerFieldReference id="org.eclipse.ui.ide.locationField"/>
+			<markerFieldReference id="org.eclipse.ui.ide.resourceField"/>
+	    </markerContentGenerator>
+ 	</extension>
+ 	
 </plugin>
