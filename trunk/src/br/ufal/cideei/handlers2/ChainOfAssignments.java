@@ -194,15 +194,15 @@ public class ChainOfAssignments extends AbstractHandler {
 			try {
 				String userHomeDir = System.getProperty("user.home");
 
-				DOTExporter<Unit, DefaultWeightedEdge> completeExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexNameFilterProvider<Unit>(
-						jdtCompilationUnit), null, new WeighEdgeNameProvider<DefaultWeightedEdge>(ccg));
+				DOTExporter<Unit, DefaultWeightedEdge> completeExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexNameFilterProvider<Unit>(),
+						null, new WeighEdgeNameProvider<DefaultWeightedEdge>(ccg));
 
 				FileWriter fileWriterForCompleteExporter = new FileWriter(new File(userHomeDir + File.separator + "comp.dot"));
 				completeExporter.export(fileWriterForCompleteExporter, ccg);
 				fileWriterForCompleteExporter.close();
 
-				DOTExporter<Unit, DefaultWeightedEdge> bodyExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexNameFilterProvider<Unit>(
-						jdtCompilationUnit), null, new WeighEdgeNameProvider<DefaultWeightedEdge>(ccg));
+				DOTExporter<Unit, DefaultWeightedEdge> bodyExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexNameFilterProvider<Unit>(), null,
+						new WeighEdgeNameProvider<DefaultWeightedEdge>(ccg));
 
 				DOTExporter<Unit, DefaultWeightedEdge> simplifiedExporter = new DOTExporter<Unit, DefaultWeightedEdge>(new VertexLineNameProvider<Unit>(
 						jdtCompilationUnit), null, null);

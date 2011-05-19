@@ -1,5 +1,8 @@
 package br.ufal.cideei.handlers2;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,13 +10,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.Map.Entry;
+
+import javax.xml.bind.helpers.DefaultValidationEventHandler;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -27,36 +33,40 @@ import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.jgrapht.ext.DOTExporter;
+import org.jgrapht.ext.StringEdgeNameProvider;
+import org.jgrapht.ext.StringNameProvider;
+import org.jgrapht.graph.DirectedMultigraph;
+import org.jgrapht.graph.SimpleDirectedGraph;
 
 import soot.Body;
 import soot.G;
 import soot.Local;
-import soot.PackManager;
-import soot.PatchingChain;
 import soot.SootMethod;
 import soot.Unit;
 import soot.ValueBox;
-import soot.grimp.Grimp;
-import soot.grimp.GrimpBody;
 import soot.jimple.DefinitionStmt;
-import soot.tagkit.Tag;
+import soot.tagkit.SourceLnPosTag;
 import soot.toolkits.graph.BriefUnitGraph;
 import soot.toolkits.scalar.FlowSet;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
 import br.ufal.cideei.features.IFeatureExtracter;
 import br.ufal.cideei.soot.SootManager;
-import br.ufal.cideei.soot.UnitUtil;
 import br.ufal.cideei.soot.analyses.LiftedFlowSet;
 import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
-import br.ufal.cideei.ui.AnalysisResultView;
 import br.ufal.cideei.ui.EmergentPopup;
 import br.ufal.cideei.ui.FeatureMarker;
 import br.ufal.cideei.ui.Location;
+import br.ufal.cideei.util.ConfigurationEdgeFactory;
+import br.ufal.cideei.util.ConfigurationEdgeNameProvider;
 import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
 import br.ufal.cideei.util.Pair;
+import br.ufal.cideei.util.ValueContainerEdge;
+import br.ufal.cideei.util.graph.VertexLineNameProvider;
+import br.ufal.cideei.util.graph.VertexNameFilterProvider;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
 
 /**
@@ -66,6 +76,9 @@ import br.ufal.cideei.visitors.SelectionNodesVisitor;
  * 
  */
 public class ReachingDefinitionsHandler extends AbstractHandler {
+
+	private static TreeSet<Integer> lineNumbers = new TreeSet<Integer>();
+	private DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData;
 
 	/*
 	 * (non-Javadoc)
@@ -122,6 +135,9 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			jdtCompilationUnit.accept(selectionNodesVisitor);
 
 			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
+			for (ASTNode astNode : selectionNodes) {
+				ReachingDefinitionsHandler.lineNumbers.add(jdtCompilationUnit.getLineNumber(astNode.getStartPosition()));
+			}
 			System.out.println("Selection" + selectionNodes);
 
 			/*
@@ -171,6 +187,14 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 * the message will be built.
 			 */
 			Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
+			DOTExporter exporter = new DOTExporter<Unit, ValueContainerEdge<Set<String>>>(new VertexLineNameProvider<Unit>(jdtCompilationUnit), null,
+					new ConfigurationEdgeNameProvider<ValueContainerEdge<Set<String>>>());
+			try {
+				exporter.export(new FileWriter(System.getProperty("user.home") + File.separator + "REACHES DATA" + ".dot"), this.reachesData);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			String message = createMessage(createProvidesConfigMap, textSelectionFile);
 
 			EmergentPopup.pop(shell, message);
@@ -253,6 +277,10 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		Map<Pair<Unit, Set<String>>, Set<Unit>> unitConfigurationMap = new HashMap<Pair<Unit, Set<String>>, Set<Unit>>();
 		FeatureTag bodyFeatureTag = (FeatureTag) body.getTag("FeatureTag");
 
+		Set<Unit> targetVertices = new HashSet<Unit>();
+		Set<Unit> sourceVertices = new HashSet<Unit>();
+		this.reachesData = new DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>>(ConfigurationEdgeFactory.getInstance());
+
 		// for every unit in the selection...
 		for (Unit unitFromSelection : unitsInSelection) {
 			if (unitFromSelection instanceof DefinitionStmt) {
@@ -265,23 +293,29 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 					continue;
 				}
 
-				System.out.println("Definition:" + definition);
+				Set<String> featuresThatUseDefinition = new HashSet<String>();
 
 				// for every unit in the body...
 				Iterator<Unit> iterator = body.getUnits().snapshotIterator();
 				while (iterator.hasNext()) {
 					Unit nextUnit = iterator.next();
+					FeatureTag nextUnitTag = (FeatureTag) nextUnit.getTag("FeatureTag");
+
+					List useAndDefBoxes = nextUnit.getUseAndDefBoxes();
+					for (Object object : useAndDefBoxes) {
+						ValueBox vbox = (ValueBox) object;
+						if (vbox.getValue().equivTo(leftOp)) {
+							featuresThatUseDefinition.addAll(nextUnitTag);
+						}
+					}
+
 					LiftedFlowSet<Collection<Set<Object>>> liftedFlowAfter = reachingDefinitions.getFlowAfter(nextUnit);
-					// Set<String>[] configurations =
-					// liftedFlowAfter.getConfigurations();
 					FlowSet[] lattices = liftedFlowAfter.getLattices();
+
 					// and for every configuration...
 					for (int latticeIndex = 0; latticeIndex < lattices.length; latticeIndex++) {
 						FlowSet flowSet = lattices[latticeIndex];
-						// Set<String> currConfiguration =
-						// configurations[latticeIndex];
 						Set<String> currConfiguration = bodyFeatureTag.getConfigurationForId(latticeIndex);
-						FeatureTag nextUnitTag = (FeatureTag) nextUnit.getTag("FeatureTag");
 
 						// if the unit belongs to the current configuration...
 						if (nextUnitTag.belongsToConfiguration(currConfiguration)) {
@@ -292,11 +326,57 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 								for (ValueBox vbox : useBoxes) {
 									/*
 									 * and the definition is used, add to the
-									 * map...
+									 * map (graph)...
 									 */
 									if (vbox.getValue().equivTo(leftOp)) {
 										Pair<Unit, Set<String>> currentPair = new Pair<Unit, Set<String>>(definition, currConfiguration);
 										Set<Unit> unitConfigurationReachesSet = unitConfigurationMap.get(currentPair);
+
+										SourceLnPosTag lineTag = (SourceLnPosTag) nextUnit.getTag("SourceLnPosTag");
+
+										if (!reachesData.containsVertex(definition)) {
+											reachesData.addVertex(definition);
+										}
+										if (!reachesData.containsVertex(nextUnit)) {
+											reachesData.addVertex(nextUnit);
+										}
+
+										Set<ValueContainerEdge<Set<String>>> allEdges = reachesData.getAllEdges(definition, nextUnit);
+										if (allEdges.size() >= 1) {
+											int diffCounter = 0;
+											Iterator<ValueContainerEdge<Set<String>>> edgesIterator = allEdges.iterator();
+											Set<ValueContainerEdge<Set<String>>> edgeRemovalSchedule = new HashSet<ValueContainerEdge<Set<String>>>();
+											while (edgesIterator.hasNext()) {
+												ValueContainerEdge<Set<String>> valueContainerEdge = (ValueContainerEdge<Set<String>>) edgesIterator.next();
+												Set<String> valueConfiguration = valueContainerEdge.getValue();
+												Integer idForConfiguration = bodyFeatureTag.getIdForConfiguration(valueConfiguration);
+												FlowSet flowSetFromOtherReached = lattices[idForConfiguration];
+												if (flowSetFromOtherReached.equals(flowSet)) {
+													/*
+													 * Se a configuração que
+													 * estiver "querendo" entrar
+													 * for menor, então ela
+													 * expulsará os maiores.
+													 */
+													if (valueConfiguration.size() > currConfiguration.size() && featuresThatUseDefinition.containsAll(currConfiguration)) {
+														edgeRemovalSchedule.add(valueContainerEdge);
+														ValueContainerEdge<Set<String>> addEdge = reachesData.addEdge(definition, nextUnit);
+														addEdge.setValue(currConfiguration);
+														continue;
+													}
+												} else {
+													diffCounter++;
+												}
+											}
+											if (diffCounter == allEdges.size() && featuresThatUseDefinition.containsAll(currConfiguration)) {
+												ValueContainerEdge<Set<String>> addEdge = reachesData.addEdge(definition, nextUnit);
+												addEdge.setValue(currConfiguration);
+											}
+											reachesData.removeAllEdges(edgeRemovalSchedule);
+										} else {
+											ValueContainerEdge<Set<String>> addEdge = reachesData.addEdge(definition, nextUnit);
+											addEdge.setValue(currConfiguration);
+										}
 
 										if (unitConfigurationReachesSet == null) {
 											unitConfigurationReachesSet = new HashSet<Unit>();
@@ -311,8 +391,10 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 						}
 					}
 				}
+				System.out.println("features that use the definition at issue: " + featuresThatUseDefinition);
 			}
 		}
+
 		return unitConfigurationMap;
 	}
 }
