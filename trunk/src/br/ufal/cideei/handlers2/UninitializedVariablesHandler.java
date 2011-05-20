@@ -133,12 +133,12 @@ public class UninitializedVariablesHandler extends AbstractHandler {
 			BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
 			LiftedUninitializedVariableAnalysis uv = new LiftedUninitializedVariableAnalysis(bodyGraph, bodyFeatureTag.getFeatures());
 
-			// TODO: Iterar sobre os resultados das análises e compilar as
-			// informações relevantes
-
 			/*
-			 * Reset SOOT states and free resources
+			 * TODO: Iterar sobre os resultados das análises e compilar as
+			 * informações relevantes
 			 */
+
+			// Reset SOOT states and free resources
 			G.v().reset();
 
 		} catch (Exception ex) {

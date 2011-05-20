@@ -187,13 +187,20 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 * the message will be built.
 			 */
 			Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
-			DOTExporter exporter = new DOTExporter<Unit, ValueContainerEdge<Set<String>>>(new VertexLineNameProvider<Unit>(jdtCompilationUnit), null,
-					new ConfigurationEdgeNameProvider<ValueContainerEdge<Set<String>>>());
-			try {
-				exporter.export(new FileWriter(System.getProperty("user.home") + File.separator + "REACHES DATA" + ".dot"), this.reachesData);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+
+			/*
+			 * TODO: This block generates the .dot file for the graph
+			 * representing the analysis reasoning. This is for debuggin only;
+			 * remove later.
+			 */
+			{
+				DOTExporter exporter = new DOTExporter<Unit, ValueContainerEdge<Set<String>>>(new VertexLineNameProvider<Unit>(jdtCompilationUnit), null,
+						new ConfigurationEdgeNameProvider<ValueContainerEdge<Set<String>>>());
+				try {
+					exporter.export(new FileWriter(System.getProperty("user.home") + File.separator + "REACHES DATA" + ".dot"), this.reachesData);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 			String message = createMessage(createProvidesConfigMap, textSelectionFile);
 
@@ -358,7 +365,8 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 													 * for menor, então ela
 													 * expulsará os maiores.
 													 */
-													if (valueConfiguration.size() > currConfiguration.size() && featuresThatUseDefinition.containsAll(currConfiguration)) {
+													if (valueConfiguration.size() > currConfiguration.size()
+															&& featuresThatUseDefinition.containsAll(currConfiguration)) {
 														edgeRemovalSchedule.add(valueContainerEdge);
 														ValueContainerEdge<Set<String>> addEdge = reachesData.addEdge(definition, nextUnit);
 														addEdge.setValue(currConfiguration);

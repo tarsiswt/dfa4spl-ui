@@ -16,13 +16,9 @@ import soot.ValueBox;
 import soot.jimple.AssignStmt;
 import soot.toolkits.graph.DirectedGraph;
 import soot.toolkits.scalar.FlowSet;
-import soot.util.Chain;
-import br.ufal.cideei.soot.analyses.LiftedFlowSet;
 import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
-import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
 
-// TODO: Auto-generated Javadoc
 /**
  * This class utilizes the GEN sets of the Reaching definitions analysis to
  * generate a chain contribution graph as a subproduct. Additionally, to avoid

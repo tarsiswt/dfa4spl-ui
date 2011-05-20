@@ -29,27 +29,20 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import soot.Body;
 import soot.G;
 import soot.Local;
-import soot.PackManager;
-import soot.PatchingChain;
 import soot.SootMethod;
 import soot.Unit;
 import soot.ValueBox;
-import soot.grimp.Grimp;
-import soot.grimp.GrimpBody;
 import soot.jimple.DefinitionStmt;
-import soot.tagkit.Tag;
 import soot.toolkits.graph.BriefUnitGraph;
 import soot.toolkits.scalar.FlowSet;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
 import br.ufal.cideei.features.IFeatureExtracter;
 import br.ufal.cideei.soot.SootManager;
-import br.ufal.cideei.soot.UnitUtil;
 import br.ufal.cideei.soot.analyses.LiftedFlowSet;
 import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
-import br.ufal.cideei.ui.EmergentPopup;
 import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
 import br.ufal.cideei.util.Pair;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
@@ -64,7 +57,7 @@ public class TccBenchmark extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		// TODO: this wrapping try is for debug only. remove later.
+		// TODO: this wrapping try is for debug only. Remove later.
 		final int TIMES = 10;
 		List<Long> runsTimer = new ArrayList<Long>(TIMES);
 		for (int i = 0; i < TIMES; i++) {

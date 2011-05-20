@@ -153,15 +153,6 @@ public class ChainOfAssignments extends AbstractHandler {
 			}
 
 			/*
-			 * TODO: Check the real uses of this.
-			 */
-			// SootManager.runPacks(extracter);
-			// Map options = new HashMap();
-			// options.put("only-stack-locals", "true");
-			// options.put("enabled", "true");
-			// Aggregator.v().transform(body, "", options);
-
-			/*
 			 * Instrumento the Jimple in-memory code.
 			 */
 			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
@@ -228,7 +219,7 @@ public class ChainOfAssignments extends AbstractHandler {
 
 	private String createMessage(Collection<AssignStmt> focusChain, FeatureTag<String> focusTag, Unit focus) {
 		/*
-		 * TODO: lazy initialize builder
+		 * TODO: lazy initialize builder?
 		 */
 		StringBuilder builder = new StringBuilder(focus + " chains towards \n");
 		for (Unit unitInChain : focusChain) {
