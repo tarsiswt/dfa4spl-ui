@@ -5,7 +5,7 @@ import org.eclipse.core.runtime.CoreException;
 
 import cide_ei.Activator;
 
-public class FeatureMarker{
+public class FeatureMarkerCreator{
 	
 	public static final String FMARKER_ID = Activator.PLUGIN_ID + ".featuremarker";
 	
@@ -14,7 +14,13 @@ public class FeatureMarker{
 			IMarker marker = loc.getFile().createMarker(FMARKER_ID);
 			marker.setAttribute(IMarker.MESSAGE, message);
 			marker.setAttribute(IMarker.LINE_NUMBER, loc.getLineNumber());
-			//marker.setAttribute(IMarker.LOCATION, loc.getFile().getName());
+			marker.setAttribute(IMarker.TEXT, loc.getConfiguration());
+			marker.setAttribute(IMarker.TASK, loc.getFeature());
+			/*if(loc.getLineNumber() % 2 == 0){
+				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
+			}else{
+				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+			}*/
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}

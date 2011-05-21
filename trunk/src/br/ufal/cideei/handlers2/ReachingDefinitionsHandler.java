@@ -58,7 +58,7 @@ import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
 import br.ufal.cideei.ui.EmergentPopup;
-import br.ufal.cideei.ui.FeatureMarker;
+import br.ufal.cideei.ui.FeatureMarkerCreator;
 import br.ufal.cideei.ui.Location;
 import br.ufal.cideei.util.ConfigurationEdgeFactory;
 import br.ufal.cideei.util.ConfigurationEdgeNameProvider;
@@ -219,7 +219,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		boolean appendedConfiguration = false;
 		// LIBORIO
 		try {
-			fileSelected.deleteMarkers(FeatureMarker.FMARKER_ID, true, IResource.DEPTH_INFINITE);
+			fileSelected.deleteMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
@@ -250,7 +250,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 				}
 				stringBuilder.append("Provides " + definition + " to\n");
 				// LIBORIO ------------------------
-				messageMarker += configuration + " provides " + definition + " to ";
+				messageMarker += "Provides " + definition;
 				Location loc = null;
 				// -------------------------------
 				for (String feature : difference) {
@@ -258,19 +258,21 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 					loc = new Location();
 					loc.setLineNumber(new Integer(ASTNodeUnitBridge.getLineFromUnit(reachedUnit)));
 					loc.setFile(fileSelected);
+					loc.setConfiguration(""+configuration);
+					loc.setFeature(feature);
 					// -------------------------------
 					stringBuilder.append("line " + loc.getLineNumber());
 					// LIBORIO ------------------------
-					messageMarker += "line " + loc.getLineNumber();
+					//messageMarker += "line " + loc.getLineNumber();
 					// -------------------------------
 					stringBuilder.append(" [feature " + feature + "]\n");
 					// LIBORIO ------------------------
-					messageMarker += " [feature " + feature + "]";
-					System.out.println(FeatureMarker.FMARKER_ID + " : " + configuration + " " + messageMarker + " (" + loc.getFile().getName() + ") - LN: "
-							+ loc.getLineNumber());
-					FeatureMarker.createMarker(messageMarker, loc);
+					//messageMarker += " [feature " + feature + "]";
+					System.out.println(FeatureMarkerCreator.FMARKER_ID + " : " + loc.getConfiguration() + " " + messageMarker + " (" + loc.getFile().getName() + ") - LN: "
+							+ loc.getLineNumber()+" "+loc.getFeature());
+					FeatureMarkerCreator.createMarker(messageMarker, loc);
 					messageMarker = "";
-					messageMarker += configuration;
+					//messageMarker += configuration;
 					// -------------------------------
 				}
 			}

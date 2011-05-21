@@ -93,6 +93,7 @@
 	
 	 <extension
          id="featuremarker"
+         class="br.ufal.cideei.ui.FeatureMarker"
          name="CIDE EI Marker"
          point="org.eclipse.core.resources.markers">
          <persistent value="true"/>
@@ -101,19 +102,25 @@
 	   
    	</extension>
    	
-   	
-	<extension point="org.eclipse.ui.ide.markerSupport">
-		<markerField 
-	      class="br.ufal.cideei.ui.FeatureField" 
-	      id="featureField" 
-	      name="Feature"> 
+   	<extension point="org.eclipse.ui.ide.markerSupport">
+	   <markerField 
+		      class="br.ufal.cideei.ui.ConfigurationColumn" 
+		      id="cide_ei.configColumn" 
+		      name="Configuration"> 
+	   </markerField>
+	   <markerField
+		      class="br.ufal.cideei.ui.FeatureColumn" 
+		      id="cide_ei.featureColumn" 
+		      name="Feature"> 
 		</markerField>
-       <markerContentGenerator id="analysisresultsSupport" name="Analysis Results">
+		<markerContentGenerator id="analysisresultsSupport" name="Analysis Results" defaultMarkerGrouping="org.eclipse.ui.ide.type">
 	      	<markerTypeReference id="cide_ei.featuremarker"/>
 	      	<markerFieldReference id="org.eclipse.ui.ide.severityAndDescriptionField"/>
-		    <markerFieldReference id="org.eclipse.ui.ide.locationField"/>
+	      	<markerFieldReference id="cide_ei.configColumn"/>
+	      	<markerFieldReference id="org.eclipse.ui.ide.locationField"/>
+			<markerFieldReference id="cide_ei.featureColumn"/>
 			<markerFieldReference id="org.eclipse.ui.ide.resourceField"/>
-	    </markerContentGenerator>
+		</markerContentGenerator>
  	</extension>
  	
 </plugin>
