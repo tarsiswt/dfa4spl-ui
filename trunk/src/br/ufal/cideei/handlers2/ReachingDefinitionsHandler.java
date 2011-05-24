@@ -202,9 +202,10 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 					e.printStackTrace();
 				}
 			}
-			String message = createMessage(createProvidesConfigMap, textSelectionFile);
+//			String message = createMessage(createProvidesConfigMap, textSelectionFile);
+			createView(reachesData,textSelectionFile);
 
-			EmergentPopup.pop(shell, message);
+//			EmergentPopup.pop(shell, message);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
@@ -212,6 +213,29 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		}
 
 		return null;
+	}
+
+	private void createView(DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData, IFile fileSelected) {
+		try {
+			fileSelected.deleteMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		
+		Set<ValueContainerEdge<Set<String>>> edgeSet = reachesData.edgeSet();
+		for (ValueContainerEdge<Set<String>> edge : edgeSet) {
+			Set<String> configuration = edge.getValue();
+			Unit unitInSelection = reachesData.getEdgeSource(edge);
+			Unit reachedUnit = reachesData.getEdgeTarget(edge);
+
+			Location loc = new Location();
+			loc.setLineNumber(new Integer(ASTNodeUnitBridge.getLineFromUnit(reachedUnit)));
+			loc.setFile(fileSelected);
+			loc.setConfiguration(""+configuration);
+			loc.setFeature("");
+			
+			FeatureMarkerCreator.createMarker("Provides " + unitInSelection + " to " + reachedUnit , loc);
+		}
 	}
 
 	private String createMessage(Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap, IFile fileSelected) {
