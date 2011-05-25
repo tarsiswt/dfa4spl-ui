@@ -232,7 +232,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			loc.setLineNumber(new Integer(ASTNodeUnitBridge.getLineFromUnit(reachedUnit)));
 			loc.setFile(fileSelected);
 			loc.setConfiguration(""+configuration);
-			loc.setFeature("");
+			loc.setFeature(""+reachedUnit.getTag("FeatureTag").toString());
 			
 			FeatureMarkerCreator.createMarker("Provides " + unitInSelection + " to " + reachedUnit , loc);
 		}

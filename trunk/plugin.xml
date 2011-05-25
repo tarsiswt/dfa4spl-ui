@@ -67,6 +67,10 @@
 		<menuContribution locationURI="popup:#CompilationUnitEditorContext">
 			<command commandId="br.ufal.cideei.commands.ei.rd"/>
 		</menuContribution>
+		
+		<menuContribution locationURI="popup:#FeatureInfoHover">
+			<command commandId="br.ufal.cideei.commands.ei.rd"/>
+		</menuContribution>
 
 		<menuContribution locationURI="popup:#CompilationUnitEditorContext">			
 			<command commandId="br.ufal.cideei.commands.ei.uv"/>
@@ -122,5 +126,16 @@
 			<markerFieldReference id="org.eclipse.ui.ide.resourceField"/>
 		</markerContentGenerator>
  	</extension>
+ 	
+ 	<extension point="org.eclipse.ui.menus">
+	<menuContribution
+	    class="br.ufal.cideei.ui.MarkerContributionFactory"
+	    locationURI="popup:#AnalysisResultView">
+	  <dynamic
+	         class="br.ufal.cideei.ui.MarkerMenuContribution"
+	         id="br.ufal.cideei.ui.MarkerMenuContribution">
+	  </dynamic>
+	</menuContribution>
+	</extension>
  	
 </plugin>
