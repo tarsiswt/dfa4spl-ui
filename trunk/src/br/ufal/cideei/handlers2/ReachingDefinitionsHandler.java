@@ -67,6 +67,8 @@ import br.ufal.cideei.util.Pair;
 import br.ufal.cideei.util.ValueContainerEdge;
 import br.ufal.cideei.util.graph.VertexLineNameProvider;
 import br.ufal.cideei.util.graph.VertexNameFilterProvider;
+import br.ufal.cideei.visitors.AllFeatureNodes;
+import br.ufal.cideei.visitors.GetFeatureVisitor;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
 
 /**
@@ -117,7 +119,8 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 */
 			ITextSelection textSelection = (ITextSelection) selection;
 			SelectionNodesVisitor selectionNodesVisitor = new SelectionNodesVisitor(textSelection);
-
+			
+			
 			/*
 			 * Now we need to create a compilation unit for the file, and then
 			 * parse it to generate an AST in which we will perform our
@@ -132,9 +135,30 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			parser.setKind(ASTParser.K_COMPILATION_UNIT);
 			parser.setResolveBindings(true);
 			CompilationUnit jdtCompilationUnit = (CompilationUnit) parser.createAST(null);
-			jdtCompilationUnit.accept(selectionNodesVisitor);
 
+
+			/*
+			 * Code that returns the interface to whole feature
+			 */
+			
+			//Returns the set of features of line(s) selected
+			GetFeatureVisitor getFeatureVisitor = new GetFeatureVisitor(textSelection, textSelectionFile);
+			jdtCompilationUnit.accept(getFeatureVisitor);
+			Set<String> features = getFeatureVisitor.getFeatures();
+			
+			//System.out.println("Features: "+features);
+			
+			//Returns all nodes corresponding to the set of features of selection
+			AllFeatureNodes allFeatureNodes = new AllFeatureNodes(textSelection, textSelectionFile, features);
+			jdtCompilationUnit.accept(allFeatureNodes);
+			
+			//Set<ASTNode> selectionNodes = allFeatureNodes.getNodes();
+
+			
+
+			jdtCompilationUnit.accept(selectionNodesVisitor);
 			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
+			
 			for (ASTNode astNode : selectionNodes) {
 				ReachingDefinitionsHandler.lineNumbers.add(jdtCompilationUnit.getLineNumber(astNode.getStartPosition()));
 			}
@@ -186,7 +210,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 * Iterate over the analysis results and generate a map from which
 			 * the message will be built.
 			 */
-			Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
+			//Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
 
 			/*
 			 * TODO: This block generates the .dot file for the graph
@@ -194,7 +218,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 * remove later.
 			 */
 			{
-				DOTExporter exporter = new DOTExporter<Unit, ValueContainerEdge<Set<String>>>(new VertexLineNameProvider<Unit>(jdtCompilationUnit), null,
+				DOTExporter<Unit, ValueContainerEdge<Set<String>>> exporter = new DOTExporter<Unit, ValueContainerEdge<Set<String>>>(new VertexLineNameProvider<Unit>(jdtCompilationUnit), null,
 						new ConfigurationEdgeNameProvider<ValueContainerEdge<Set<String>>>());
 				try {
 					exporter.export(new FileWriter(System.getProperty("user.home") + File.separator + "REACHES DATA" + ".dot"), this.reachesData);
@@ -382,7 +406,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 											while (edgesIterator.hasNext()) {
 												ValueContainerEdge<Set<String>> valueContainerEdge = (ValueContainerEdge<Set<String>>) edgesIterator.next();
 												Set<String> valueConfiguration = valueContainerEdge.getValue();
-												Integer idForConfiguration = bodyFeatureTag.getIdForConfiguration(valueConfiguration);
+												Integer idForConfiguration = 0;//bodyFeatureTag.getConfigurationForId(valueConfiguration);
 												FlowSet flowSetFromOtherReached = lattices[idForConfiguration];
 												if (flowSetFromOtherReached.equals(flowSet)) {
 													/*

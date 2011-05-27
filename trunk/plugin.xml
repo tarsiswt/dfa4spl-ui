@@ -84,7 +84,6 @@
 			<command commandId="br.ufal.cideei.commands.ei.bfa"/>
 		</menuContribution>
 	</extension>
-	
 	<extension point="org.eclipse.ui.views">
 		<view
 			category="CIDE EI Views"
@@ -126,7 +125,6 @@
 			<markerFieldReference id="org.eclipse.ui.ide.resourceField"/>
 		</markerContentGenerator>
  	</extension>
- 	
  	<extension point="org.eclipse.ui.menus">
 	<menuContribution
 	    class="br.ufal.cideei.ui.MarkerContributionFactory"
