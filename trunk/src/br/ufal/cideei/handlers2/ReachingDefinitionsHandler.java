@@ -11,10 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.UUID;
-import java.util.Map.Entry;
-
-import javax.xml.bind.helpers.DefaultValidationEventHandler;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -34,10 +30,7 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jgrapht.ext.DOTExporter;
-import org.jgrapht.ext.StringEdgeNameProvider;
-import org.jgrapht.ext.StringNameProvider;
 import org.jgrapht.graph.DirectedMultigraph;
-import org.jgrapht.graph.SimpleDirectedGraph;
 
 import soot.Body;
 import soot.G;
@@ -57,7 +50,6 @@ import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
-import br.ufal.cideei.ui.EmergentPopup;
 import br.ufal.cideei.ui.FeatureMarkerCreator;
 import br.ufal.cideei.ui.Location;
 import br.ufal.cideei.util.ConfigurationEdgeFactory;
@@ -66,7 +58,6 @@ import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
 import br.ufal.cideei.util.Pair;
 import br.ufal.cideei.util.ValueContainerEdge;
 import br.ufal.cideei.util.graph.VertexLineNameProvider;
-import br.ufal.cideei.util.graph.VertexNameFilterProvider;
 import br.ufal.cideei.visitors.AllFeatureNodes;
 import br.ufal.cideei.visitors.GetFeatureVisitor;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
@@ -119,8 +110,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 */
 			ITextSelection textSelection = (ITextSelection) selection;
 			SelectionNodesVisitor selectionNodesVisitor = new SelectionNodesVisitor(textSelection);
-			
-			
+
 			/*
 			 * Now we need to create a compilation unit for the file, and then
 			 * parse it to generate an AST in which we will perform our
@@ -136,29 +126,27 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			parser.setResolveBindings(true);
 			CompilationUnit jdtCompilationUnit = (CompilationUnit) parser.createAST(null);
 
-
 			/*
 			 * Code that returns the interface to whole feature
 			 */
-			
-			//Returns the set of features of line(s) selected
+
+			// Returns the set of features of line(s) selected
 			GetFeatureVisitor getFeatureVisitor = new GetFeatureVisitor(textSelection, textSelectionFile);
 			jdtCompilationUnit.accept(getFeatureVisitor);
 			Set<String> features = getFeatureVisitor.getFeatures();
-			
-			//System.out.println("Features: "+features);
-			
-			//Returns all nodes corresponding to the set of features of selection
+
+			// System.out.println("Features: "+features);
+
+			// Returns all nodes corresponding to the set of features of
+			// selection
 			AllFeatureNodes allFeatureNodes = new AllFeatureNodes(textSelection, textSelectionFile, features);
 			jdtCompilationUnit.accept(allFeatureNodes);
-			
-			//Set<ASTNode> selectionNodes = allFeatureNodes.getNodes();
 
-			
+			// Set<ASTNode> selectionNodes = allFeatureNodes.getNodes();
 
 			jdtCompilationUnit.accept(selectionNodesVisitor);
 			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
-			
+
 			for (ASTNode astNode : selectionNodes) {
 				ReachingDefinitionsHandler.lineNumbers.add(jdtCompilationUnit.getLineNumber(astNode.getStartPosition()));
 			}
@@ -206,30 +194,24 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			LiftedReachingDefinitions reachingDefinitions = new LiftedReachingDefinitions(bodyGraph, bodyFeatureTag.getFeatures());
 			reachingDefinitions.execute();
 
-			/*
-			 * Iterate over the analysis results and generate a map from which
-			 * the message will be built.
-			 */
-			//Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap = createProvidesConfigMap(unitsInSelection, reachingDefinitions, body);
 
+			createProvidesGraph(unitsInSelection, reachingDefinitions, body);
+			populateView(reachesData, textSelectionFile);
+			
 			/*
 			 * TODO: This block generates the .dot file for the graph
 			 * representing the analysis reasoning. This is for debuggin only;
 			 * remove later.
 			 */
 			{
-				DOTExporter<Unit, ValueContainerEdge<Set<String>>> exporter = new DOTExporter<Unit, ValueContainerEdge<Set<String>>>(new VertexLineNameProvider<Unit>(jdtCompilationUnit), null,
-						new ConfigurationEdgeNameProvider<ValueContainerEdge<Set<String>>>());
+				DOTExporter<Unit, ValueContainerEdge<Set<String>>> exporter = new DOTExporter<Unit, ValueContainerEdge<Set<String>>>(
+						new VertexLineNameProvider<Unit>(jdtCompilationUnit), null, new ConfigurationEdgeNameProvider<ValueContainerEdge<Set<String>>>());
 				try {
 					exporter.export(new FileWriter(System.getProperty("user.home") + File.separator + "REACHES DATA" + ".dot"), this.reachesData);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
-//			String message = createMessage(createProvidesConfigMap, textSelectionFile);
-			createView(reachesData,textSelectionFile);
-
-//			EmergentPopup.pop(shell, message);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
@@ -239,13 +221,13 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		return null;
 	}
 
-	private void createView(DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData, IFile fileSelected) {
+	private void populateView(DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData, IFile fileSelected) {
 		try {
 			fileSelected.deleteMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
-		
+
 		Set<ValueContainerEdge<Set<String>>> edgeSet = reachesData.edgeSet();
 		for (ValueContainerEdge<Set<String>> edge : edgeSet) {
 			Set<String> configuration = edge.getValue();
@@ -255,87 +237,19 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			Location loc = new Location();
 			loc.setLineNumber(new Integer(ASTNodeUnitBridge.getLineFromUnit(reachedUnit)));
 			loc.setFile(fileSelected);
-			loc.setConfiguration(""+configuration);
-			loc.setFeature(""+reachedUnit.getTag("FeatureTag").toString());
-			
-			FeatureMarkerCreator.createMarker("Provides " + unitInSelection + " to " + reachedUnit , loc);
+			loc.setConfiguration("" + configuration);
+			loc.setFeature("" + reachedUnit.getTag("FeatureTag").toString());
+
+			FeatureMarkerCreator.createMarker("Provides " + unitInSelection + " to " + reachedUnit, loc);
 		}
 	}
 
-	private String createMessage(Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap, IFile fileSelected) {
-		StringBuilder stringBuilder = new StringBuilder();
-		boolean appendedConfiguration = false;
-		// LIBORIO
-		try {
-			fileSelected.deleteMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
-		} catch (CoreException e) {
-			e.printStackTrace();
-		}
-		// -------------------------------
-		for (Entry<Pair<Unit, Set<String>>, Set<Unit>> provideEntry : createProvidesConfigMap.entrySet()) {
-			Pair<Unit, Set<String>> key = provideEntry.getKey();
-			Unit definition = key.getFirst();
-			FeatureTag definitionTag = (FeatureTag) definition.getTag("FeatureTag");
-			Set<String> configuration = key.getSecond();
-
-			Set<Unit> reachedUses = provideEntry.getValue();
-			for (Unit reachedUnit : reachedUses) {
-				FeatureTag reachedUnitTag = (FeatureTag) reachedUnit.getTag("FeatureTag");
-				Set<String> difference = new HashSet<String>(reachedUnitTag);
-				difference.removeAll(definitionTag);
-
-				if (difference.size() == 0) {
-					continue;
-				}
-				// LIBORIO ------------------------
-				String messageMarker = "";
-				// -------------------------------
-				if (!appendedConfiguration) {
-					stringBuilder.append('\n');
-					stringBuilder.append(configuration);
-					stringBuilder.append('\n');
-					appendedConfiguration = true;
-				}
-				stringBuilder.append("Provides " + definition + " to\n");
-				// LIBORIO ------------------------
-				messageMarker += "Provides " + definition;
-				Location loc = null;
-				// -------------------------------
-				for (String feature : difference) {
-					// LIBORIO ------------------------
-					loc = new Location();
-					loc.setLineNumber(new Integer(ASTNodeUnitBridge.getLineFromUnit(reachedUnit)));
-					loc.setFile(fileSelected);
-					loc.setConfiguration(""+configuration);
-					loc.setFeature(feature);
-					// -------------------------------
-					stringBuilder.append("line " + loc.getLineNumber());
-					// LIBORIO ------------------------
-					//messageMarker += "line " + loc.getLineNumber();
-					// -------------------------------
-					stringBuilder.append(" [feature " + feature + "]\n");
-					// LIBORIO ------------------------
-					//messageMarker += " [feature " + feature + "]";
-					System.out.println(FeatureMarkerCreator.FMARKER_ID + " : " + loc.getConfiguration() + " " + messageMarker + " (" + loc.getFile().getName() + ") - LN: "
-							+ loc.getLineNumber()+" "+loc.getFeature());
-					FeatureMarkerCreator.createMarker(messageMarker, loc);
-					messageMarker = "";
-					//messageMarker += configuration;
-					// -------------------------------
-				}
-			}
-			appendedConfiguration = false;
-		}
-		return stringBuilder.toString();
-	}
-
-	private Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesConfigMap(Collection<Unit> unitsInSelection, LiftedReachingDefinitions reachingDefinitions,
+	// TODO: extract *some* methods from this one.
+	private Map<Pair<Unit, Set<String>>, Set<Unit>> createProvidesGraph(Collection<Unit> unitsInSelection, LiftedReachingDefinitions reachingDefinitions,
 			Body body) {
 		Map<Pair<Unit, Set<String>>, Set<Unit>> unitConfigurationMap = new HashMap<Pair<Unit, Set<String>>, Set<Unit>>();
 		FeatureTag bodyFeatureTag = (FeatureTag) body.getTag("FeatureTag");
 
-		Set<Unit> targetVertices = new HashSet<Unit>();
-		Set<Unit> sourceVertices = new HashSet<Unit>();
 		this.reachesData = new DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>>(ConfigurationEdgeFactory.getInstance());
 
 		// for every unit in the selection...
@@ -389,8 +303,6 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 										Pair<Unit, Set<String>> currentPair = new Pair<Unit, Set<String>>(definition, currConfiguration);
 										Set<Unit> unitConfigurationReachesSet = unitConfigurationMap.get(currentPair);
 
-										SourceLnPosTag lineTag = (SourceLnPosTag) nextUnit.getTag("SourceLnPosTag");
-
 										if (!reachesData.containsVertex(definition)) {
 											reachesData.addVertex(definition);
 										}
@@ -406,7 +318,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 											while (edgesIterator.hasNext()) {
 												ValueContainerEdge<Set<String>> valueContainerEdge = (ValueContainerEdge<Set<String>>) edgesIterator.next();
 												Set<String> valueConfiguration = valueContainerEdge.getValue();
-												Integer idForConfiguration = 0;//bodyFeatureTag.getConfigurationForId(valueConfiguration);
+												Integer idForConfiguration = 0;// bodyFeatureTag.getConfigurationForId(valueConfiguration);
 												FlowSet flowSetFromOtherReached = lattices[idForConfiguration];
 												if (flowSetFromOtherReached.equals(flowSet)) {
 													/*
