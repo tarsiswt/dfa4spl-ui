@@ -16,11 +16,6 @@ public class FeatureMarkerCreator{
 			marker.setAttribute(IMarker.LINE_NUMBER, loc.getLineNumber());
 			marker.setAttribute(IMarker.TEXT, loc.getConfiguration());
 			marker.setAttribute(IMarker.TASK, loc.getFeature());
-			/*if(loc.getLineNumber() % 2 == 0){
-				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
-			}else{
-				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-			}*/
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}

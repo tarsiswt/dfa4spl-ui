@@ -142,7 +142,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			AllFeatureNodes allFeatureNodes = new AllFeatureNodes(textSelection, textSelectionFile, features);
 			jdtCompilationUnit.accept(allFeatureNodes);
 
-			// Set<ASTNode> selectionNodes = allFeatureNodes.getNodes();
+			//Set<ASTNode> selectionNodes = allFeatureNodes.getNodes();
 
 			jdtCompilationUnit.accept(selectionNodesVisitor);
 			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
