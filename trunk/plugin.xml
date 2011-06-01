@@ -35,6 +35,40 @@
 			id="br.ufal.cideei.commands.ei.bfa"
 			name="Compute EI (BFA)">
 		</command>
+		
+		<!-- Commands to implements interface to whole feature -->
+		
+		<command categoryId="a"
+			description="Computes emergent interface for all feature" 
+			id="br.ufal.cideei.commands.ei.wf"
+			name="Whole Feature">
+		</command>
+		
+		<command categoryId="a"
+			description="Computes emergent interface for the reaching refinitions analysis" 
+			id="br.ufal.cideei.commands.ei.rd.af"
+			name="Compute EI (RD)">
+		</command>
+
+		<command categoryId="a"
+			description="Computes emergent interface for the uninitialized variables analysis"
+			id="br.ufal.cideei.commands.ei.uv.af" 
+			name="Compute EI (UV)">
+		</command>
+		
+		<command categoryId="a"
+			description="Computes emergent interface for the coa analysis" 
+			id="br.ufal.cideei.commands.ei.coa.af"
+			name="Compute EI (CoA)">
+		</command>
+		
+		<command categoryId="a"
+			description="Computes emergent interface for the bfa analysis" 
+			id="br.ufal.cideei.commands.ei.bfa.af"
+			name="Compute EI (BFA)">
+		</command>
+		
+		
 	</extension>
 
 	<extension point="org.eclipse.ui.handlers">
@@ -57,13 +91,52 @@
 		<handler class="br.ufal.cideei.handlers2.BrokenFlow"
 			commandId="br.ufal.cideei.commands.ei.bfa" name="Handler for bfa command">
 		</handler>
+		
+		<handler class="br.ufal.cideei.handlers2.af.TccBenchmarkAllFeature"
+			commandId="br.ufal.cideei.commands.ei.tst.af" name="Handler for rd command">
+		</handler>
+	
+		<handler class="br.ufal.cideei.handlers2.af.ReachingDefinitionsAllFeatureHandler"
+			commandId="br.ufal.cideei.commands.ei.rd.af" name="Handler for rd command">
+		</handler>
+
+		<handler class="br.ufal.cideei.handlers2.af.UninitializedVariablesAllFeatureHandler"
+			commandId="br.ufal.cideei.commands.ei.uv.af" name="Handler for uv command">
+		</handler>
+		
+		<handler class="br.ufal.cideei.handlers2.af.ChainOfAssignmentsAllFeature"
+			commandId="br.ufal.cideei.commands.ei.coa.af" name="Handler for coa command">
+		</handler>
+		
+		<handler class="br.ufal.cideei.handlers2.af.BrokenFlowAllFeature"
+			commandId="br.ufal.cideei.commands.ei.bfa.af" name="Handler for bfa command">
+		</handler>
+		
 	</extension>
 
 	<extension point="org.eclipse.ui.menus">
-	<menuContribution locationURI="popup:#CompilationUnitEditorContext">
+	
+		<menuContribution locationURI="popup:#CompilationUnitEditorContext">
 			<command commandId="br.ufal.cideei.commands.ei.tst"/>
 		</menuContribution>
 	
+		<menuContribution
+			id="br.ufal.cideei.menu.af"
+			locationURI="popup:#CompilationUnitEditorContext">
+				<menu
+		            label="Whole Feature"
+		            id="br.ufal.cideei.menus.wfmenu">
+					<command commandId="br.ufal.cideei.commands.ei.bfa.af"/>
+					<command commandId="br.ufal.cideei.commands.ei.coa.af"/>
+					<command commandId="br.ufal.cideei.commands.ei.uv.af"/>
+			        <command commandId="br.ufal.cideei.commands.ei.rd.af" />
+			        <separator
+			    	    name="additions"
+			        	visible="false">
+			        </separator>
+	        	</menu>
+	    </menuContribution>			
+		
 		<menuContribution locationURI="popup:#CompilationUnitEditorContext">
 			<command commandId="br.ufal.cideei.commands.ei.rd"/>
 		</menuContribution>
@@ -79,6 +152,7 @@
 		<menuContribution locationURI="popup:#CompilationUnitEditorContext">			
 			<command commandId="br.ufal.cideei.commands.ei.bfa"/>
 		</menuContribution>
+		
 	</extension>
 	
 	<!-- Creating the view that shows the results of analysis -->

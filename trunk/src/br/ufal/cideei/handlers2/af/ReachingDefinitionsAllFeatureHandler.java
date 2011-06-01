@@ -1,4 +1,4 @@
-package br.ufal.cideei.handlers2;
+package br.ufal.cideei.handlers2.af;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -68,7 +68,7 @@ import br.ufal.cideei.visitors.SelectionNodesVisitor;
  * @author Társis
  * 
  */
-public class ReachingDefinitionsHandler extends AbstractHandler {
+public class ReachingDefinitionsAllFeatureHandler extends AbstractHandler {
 
 	private static TreeSet<Integer> lineNumbers = new TreeSet<Integer>();
 	private DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData;
@@ -126,11 +126,29 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			parser.setResolveBindings(true);
 			CompilationUnit jdtCompilationUnit = (CompilationUnit) parser.createAST(null);
 
+			/*
+			 * Code that returns the interface to whole feature
+			 */
+
+			// Returns the set of features of line(s) selected
+			GetFeatureVisitor getFeatureVisitor = new GetFeatureVisitor(textSelection, textSelectionFile);
+			jdtCompilationUnit.accept(getFeatureVisitor);
+			Set<String> features = getFeatureVisitor.getFeatures();
+
+			// System.out.println("Features: "+features);
+
+			// Returns all nodes corresponding to the set of features of
+			// selection
+			AllFeatureNodes allFeatureNodes = new AllFeatureNodes(textSelection, textSelectionFile, features);
+			jdtCompilationUnit.accept(allFeatureNodes);
+
+			Set<ASTNode> selectionNodes = allFeatureNodes.getNodes();
+
 			jdtCompilationUnit.accept(selectionNodesVisitor);
-			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
+//			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
 
 			for (ASTNode astNode : selectionNodes) {
-				ReachingDefinitionsHandler.lineNumbers.add(jdtCompilationUnit.getLineNumber(astNode.getStartPosition()));
+				ReachingDefinitionsAllFeatureHandler.lineNumbers.add(jdtCompilationUnit.getLineNumber(astNode.getStartPosition()));
 			}
 			System.out.println("Selection" + selectionNodes);
 
