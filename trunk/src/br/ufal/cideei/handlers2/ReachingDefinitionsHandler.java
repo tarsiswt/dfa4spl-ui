@@ -39,7 +39,6 @@ import soot.SootMethod;
 import soot.Unit;
 import soot.ValueBox;
 import soot.jimple.DefinitionStmt;
-import soot.tagkit.SourceLnPosTag;
 import soot.toolkits.graph.BriefUnitGraph;
 import soot.toolkits.scalar.FlowSet;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
@@ -58,8 +57,6 @@ import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
 import br.ufal.cideei.util.Pair;
 import br.ufal.cideei.util.ValueContainerEdge;
 import br.ufal.cideei.util.graph.VertexLineNameProvider;
-import br.ufal.cideei.visitors.AllFeatureNodes;
-import br.ufal.cideei.visitors.GetFeatureVisitor;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
 
 /**

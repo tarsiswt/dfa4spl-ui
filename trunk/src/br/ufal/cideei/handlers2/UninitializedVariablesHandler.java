@@ -1,7 +1,5 @@
 package br.ufal.cideei.handlers2;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -22,20 +20,16 @@ import org.eclipse.ui.handlers.HandlerUtil;
 
 import soot.Body;
 import soot.G;
-import soot.PatchingChain;
 import soot.SootMethod;
-import soot.Unit;
 import soot.toolkits.graph.BriefUnitGraph;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
 import br.ufal.cideei.features.IFeatureExtracter;
 import br.ufal.cideei.soot.SootManager;
-import br.ufal.cideei.soot.analyses.reachingdefs.UnliftedReachingDefinitions;
 import br.ufal.cideei.soot.analyses.uninitvars.LiftedUninitializedVariableAnalysis;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
-import de.ovgu.cide.features.source.ColoredSourceFile;
 
 /**
  * Handler for the br.ufal.cideei.commands.DoCompute extension command.

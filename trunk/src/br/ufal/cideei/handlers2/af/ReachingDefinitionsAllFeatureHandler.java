@@ -39,7 +39,6 @@ import soot.SootMethod;
 import soot.Unit;
 import soot.ValueBox;
 import soot.jimple.DefinitionStmt;
-import soot.tagkit.SourceLnPosTag;
 import soot.toolkits.graph.BriefUnitGraph;
 import soot.toolkits.scalar.FlowSet;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;

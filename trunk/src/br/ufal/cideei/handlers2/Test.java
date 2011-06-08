@@ -1,13 +1,8 @@
 package br.ufal.cideei.handlers2;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -27,31 +22,17 @@ import org.eclipse.ui.handlers.HandlerUtil;
 
 import soot.Body;
 import soot.G;
-import soot.Local;
-import soot.PackManager;
-import soot.PatchingChain;
 import soot.SootMethod;
 import soot.Unit;
-import soot.ValueBox;
-import soot.grimp.Grimp;
-import soot.grimp.GrimpBody;
-import soot.jimple.DefinitionStmt;
-import soot.tagkit.Tag;
 import soot.toolkits.graph.BriefUnitGraph;
-import soot.toolkits.scalar.FlowSet;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
 import br.ufal.cideei.features.IFeatureExtracter;
 import br.ufal.cideei.soot.SootManager;
-import br.ufal.cideei.soot.UnitUtil;
-import br.ufal.cideei.soot.analyses.LiftedFlowSet;
-import br.ufal.cideei.soot.analyses.reachingdefs.LiftedReachingDefinitions;
 import br.ufal.cideei.soot.analyses.reachingdefs.SimpleReachedDefinitionsAnalysis;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
-import br.ufal.cideei.ui.EmergentPopup;
 import br.ufal.cideei.util.MethodDeclarationSootMethodBridge;
-import br.ufal.cideei.util.Pair;
 import br.ufal.cideei.visitors.SelectionNodesVisitor;
 
 /**
