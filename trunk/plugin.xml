@@ -288,4 +288,23 @@
 		</specification>
 	</extension>
 	
+	<!-- Extension to create the editor of CIDE_EI -->
+	
+	<extension
+         id="javaeditor"
+         point="org.eclipse.ui.editors">
+      <editor
+            name="Hide Feature Editor"
+            default="true"
+            icon="icons/coloredj.gif"
+            contributorClass="org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitEditorActionContributor"
+            class="br.ufal.cideei.editor.ExtendedColoredJavaEditor"
+            symbolicFontName="org.eclipse.jdt.ui.editors.textfont"
+            id="de.ovgu.cide.ColoredFoldingCompilationUnitEditor">
+            <contentTypeBinding
+               contentTypeId="org.eclipse.jdt.core.javaSource"
+            /> 
+      </editor>
+      </extension>
+	
 </plugin>
