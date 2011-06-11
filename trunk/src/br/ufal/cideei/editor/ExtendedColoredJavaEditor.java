@@ -6,10 +6,18 @@ import java.util.HashSet;
 
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.source.Annotation;
+import org.eclipse.jface.text.source.AnnotationPainter.IDrawingStrategy;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
+import org.eclipse.jface.text.source.projection.ProjectionSupport;
 import org.eclipse.jface.text.source.projection.ProjectionViewer;
+import org.eclipse.swt.custom.StyledText;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.jface.text.source.AnnotationPainter.IDrawingStrategy;
 
 import de.ovgu.cide.language.jdt.editor.ColoredCompilationUnitEditor;
 
@@ -20,7 +28,7 @@ public class ExtendedColoredJavaEditor extends ColoredCompilationUnitEditor{
 	private HashSet<ArrayList<Position>> positionsCIDEEI;
 	private Annotation[] oldAnnotationsCIDEEI;
 	private ProjectionAnnotationModel annotationModelCIDEEI;
-	
+		
 	public ExtendedColoredJavaEditor(){
 		this.annotationModelCIDEEI = new ProjectionAnnotationModel();
 	}
@@ -37,6 +45,22 @@ public class ExtendedColoredJavaEditor extends ColoredCompilationUnitEditor{
 		super.createPartControl(parent);
 		
 		ProjectionViewer viewer = (ProjectionViewer) getSourceViewer();
+		
+		/*ProjectionSupport projectionSupport_ = new ProjectionSupport(viewer,getAnnotationAccess(),getSharedColors());
+	    projectionSupport_.install();
+	    projectionSupport_.setAnnotationPainterDrawingStrategy(new IDrawingStrategy(){
+	    	public void draw(Annotation annotation, GC gc, StyledText textWidget, int offset, int length, Color color) {
+	    		if (gc != null) {
+	    			Point left= textWidget.getLocationAtOffset(offset);
+	    			textWidget.setSelectionBackground(color);
+	    			int x1= left.x;
+	    			int verticalOffset = textWidget.getLineHeight()/2;
+	    			gc.drawLine(x1, left.y + verticalOffset , textWidget.getBounds().width, left.y + verticalOffset );
+	    		} else {
+	    			textWidget.redrawRange(offset, length, true);
+	    		}			
+	    	}
+	    });*/
 
 		viewer.disableProjection();
 		viewer.enableProjection();
@@ -54,6 +78,8 @@ public class ExtendedColoredJavaEditor extends ColoredCompilationUnitEditor{
 		for(int i =0;i<positions.size();i++)
 		{
 			ProjectionAnnotation annotation = new ProjectionAnnotation();
+			annotation.markCollapsed();
+			//annotation.paint(gc, annotation., rectangle)
 			
 			newAnnotations.put(annotation,positions.get(i));
 			annotationModelCIDEEI.addAnnotation(annotation, (Position) positions.get(i));

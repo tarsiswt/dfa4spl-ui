@@ -3,7 +3,9 @@ package br.ufal.cideei.handlers2;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -24,6 +26,7 @@ import org.eclipse.jface.text.source.IAnnotationModel;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.views.markers.MarkerItem;
@@ -40,10 +43,9 @@ import br.ufal.cideei.visitors.SupplementaryConfigurationVisitor;
 import de.ovgu.cide.language.jdt.editor.ColoredCompilationUnitEditor;
 import br.ufal.cideei.editor.ExtendedColoredJavaEditor;
 
-public class HideFeatureHandler extends MarkerViewHandler  {
+public class HideFeatureHandler extends AbstractHandler  {
 
 	@Override
-	@SuppressWarnings({ "unused"})
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		
 		ISelection selection = (ISelection) HandlerUtil.getActiveMenuSelection(event);
@@ -57,9 +59,11 @@ public class HideFeatureHandler extends MarkerViewHandler  {
 					 * Code which gets the document on the annotations will be placed.
 					 */
 					
-					MarkerSupportView page = getView(event);
+					ExtendedColoredJavaEditor editor = (ExtendedColoredJavaEditor) HandlerUtil.getActiveEditor(event).getAdapter(ExtendedColoredJavaEditor.class);
+					
+					/*MarkerSupportView page = getView(event);
 					ExtendedColoredJavaEditor editor = (ExtendedColoredJavaEditor) page.getSite().getWorkbenchWindow().getActivePage().getActiveEditor()
-					.getAdapter(ExtendedColoredJavaEditor.class);
+					.getAdapter(ExtendedColoredJavaEditor.class);*/
 					
 					IDocumentProvider dp = editor.getDocumentProvider();
 					IAnnotationModel am = editor.getProjectionAnnotationModel();
@@ -127,6 +131,8 @@ public class HideFeatureHandler extends MarkerViewHandler  {
 				e.printStackTrace();
 			} catch (BadLocationException e1) {
 				e1.printStackTrace();
+			} catch (Exception e2){
+				e2.printStackTrace();
 			}
 			
 		return null;
@@ -145,6 +151,7 @@ public class HideFeatureHandler extends MarkerViewHandler  {
 		int length = 0;
 		int offset = 0;
 		boolean newAnnotation = false;
+		boolean first = true;
 		featureNames = features.iterator();
 		
 		while (featureNames.hasNext()) {
@@ -153,6 +160,7 @@ public class HideFeatureHandler extends MarkerViewHandler  {
 			previousLine = 0;
 			length = 0;
 			offset = 0;
+			first = true;
 			
 			featureName = featureNames.next();
 			lines = featuresLineNumbers.get(featureName);
@@ -160,7 +168,6 @@ public class HideFeatureHandler extends MarkerViewHandler  {
 			if(lines.size() > 1){
 			
 				iteratorInteger = lines.iterator();
-				offset = d.getLineOffset(iteratorInteger.next().intValue());
 										
 				while (iteratorInteger.hasNext()) {
 					if(newAnnotation == true){
@@ -169,6 +176,10 @@ public class HideFeatureHandler extends MarkerViewHandler  {
 						newAnnotation = false;
 					}else{
 						line = iteratorInteger.next().intValue() - 1;
+						if(first == true){
+							offset = d.getLineOffset(line);
+							first = false;
+						}
 					}
 					length = length + d.getLineLength(line);
 					if(previousLine > 0 && line > previousLine + 1){
@@ -218,11 +229,12 @@ public class HideFeatureHandler extends MarkerViewHandler  {
 		
 		String feature = markerConfigColumn.substring(1, markerConfigColumn.length() - 1);
 		String[] featuresArray = feature.split(",");
-		Set<String> configuration = new TreeSet<String>();
+		Set<String> configuration = new HashSet<String>();
 		for (String string : featuresArray) {
 			configuration.add(string);
 		}
 		return configuration;
 	}
+
 
 }
