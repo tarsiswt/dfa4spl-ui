@@ -1,11 +1,9 @@
 package br.ufal.cideei.handlers2;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -22,25 +20,20 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.Position;
-import org.eclipse.jface.text.source.IAnnotationModel;
+import org.eclipse.jface.text.source.ISourceViewer;
+//import org.eclipse.jface.text.source.IAnnotationModel;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.core.commands.AbstractHandler;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.handlers.HandlerUtil;
+//import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.views.markers.MarkerItem;
-import org.eclipse.ui.views.markers.MarkerSupportView;
-import org.eclipse.ui.views.markers.MarkerViewHandler;
-
 import org.eclipse.jdt.core.dom.ASTNode;
 
-import soot.Unit;
-
-import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
 import br.ufal.cideei.visitors.SupplementaryConfigurationVisitor;
 
-import de.ovgu.cide.language.jdt.editor.ColoredCompilationUnitEditor;
 import br.ufal.cideei.editor.ExtendedColoredJavaEditor;
 
 public class HideFeatureHandler extends AbstractHandler  {
@@ -65,10 +58,19 @@ public class HideFeatureHandler extends AbstractHandler  {
 					ExtendedColoredJavaEditor editor = (ExtendedColoredJavaEditor) page.getSite().getWorkbenchWindow().getActivePage().getActiveEditor()
 					.getAdapter(ExtendedColoredJavaEditor.class);*/
 					
-					IDocumentProvider dp = editor.getDocumentProvider();
-					IAnnotationModel am = editor.getProjectionAnnotationModel();
+					//IDocumentProvider dp = editor.getDocumentProvider();
 					IDocument d = editor.getDocument();
-	
+					
+					
+					/*
+					ISourceViewer viewer = editor.getViewer();
+					Point selectedRange = viewer.getSelectedRange();
+				    int caretAt = selectedRange.x;
+				    int length = selectedRange.y;
+				        
+				    System.out.println(caretAt+"  "+length);
+					*/
+					
 					/*
 					 * Get the file which will be analysed by the visitor.
 					 */
@@ -80,7 +82,7 @@ public class HideFeatureHandler extends AbstractHandler  {
 					 */
 					
 					String feature  = (String) ((MarkerItem) marker).getMarker().getAttribute(IMarker.TEXT);
-					int lineOfMarker = ((Integer) ((MarkerItem) marker).getMarker().getAttribute(IMarker.LINE_NUMBER)).intValue();
+					//int lineOfMarker = ((Integer) ((MarkerItem) marker).getMarker().getAttribute(IMarker.LINE_NUMBER)).intValue();
 					
 					/*
 					 * This visitor selects the features that will be collapsed.
@@ -105,12 +107,6 @@ public class HideFeatureHandler extends AbstractHandler  {
 					
 					Set<String> features = supplementaryConfigurationVisitor.getFeatureNames();
 					Iterator<String> featureNames = features.iterator();
-					
-					ASTNode node = null;
-					String featureName = null;
-					Set<Integer> lines = null;
-					Iterator<ASTNode> iteratorNodes = null;
-					Set<ASTNode> nodes = null;
 					
 					HashMap<String, TreeSet<Integer>> featuresLineNumbers = convertFromNodesToLines(
 							jdtCompilationUnit, featureLines, featureNames);
@@ -171,13 +167,16 @@ public class HideFeatureHandler extends AbstractHandler  {
 										
 				while (iteratorInteger.hasNext()) {
 					if(newAnnotation == true){
-						offset = line;
-						line = previousLine;
+						offset = d.getLineOffset(line - 1);
+						length = d.getLineLength(line - 1);
+						//offset = d.getLineOffset(line);
 						newAnnotation = false;
 					}else{
 						line = iteratorInteger.next().intValue() - 1;
 						if(first == true){
-							offset = d.getLineOffset(line);
+							offset = d.getLineOffset(line - 1);
+							length = d.getLineLength(line - 1);
+							//offset = d.getLineOffset(line);
 							first = false;
 						}
 					}
