@@ -1,21 +1,24 @@
 package br.ufal.cideei.editor;
 
+import org.eclipse.jdt.core.ITypeRoot;
+import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.Assignment;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.internal.corext.dom.NodeFinder;
+import org.eclipse.jdt.ui.JavaUI;
+import org.eclipse.jdt.ui.SharedASTProvider;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.ISelectionListener;
 import org.eclipse.ui.IWorkbenchPart;
-import org.eclipse.jdt.core.ITypeRoot;
-import org.eclipse.jdt.core.dom.ASTNode;
-import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.internal.corext.dom.NodeFinder;
-import org.eclipse.jdt.ui.JavaUI;
-import org.eclipse.jdt.ui.SharedASTProvider;
 
 
 @SuppressWarnings("restriction")
 public class ChangeSelectionListener implements ISelectionListener{
 
+	private int previousCaretPosition;
+	
 	@Override
 	public void selectionChanged(IWorkbenchPart arg0, ISelection arg1) {
 		
@@ -50,9 +53,16 @@ public class ChangeSelectionListener implements ISelectionListener{
 	        ast.accept(finder);
 	     
 	        ASTNode originalNode = finder.getCoveringNode();
-	        System.out.println(originalNode.toString());
-	        ASTNode node;
         
+	        if (originalNode.getNodeType() == ASTNode.ASSIGNMENT) {
+	        	
+	        	System.out.println("==========================> " + previousCaretPosition);
+	        	System.out.println("==========================> " + caretAt);
+
+	        	previousCaretPosition = caretAt;
+	        	
+	        	System.out.println("==========================> " + originalNode.toString());
+	        }
 		}
 		
 	}
