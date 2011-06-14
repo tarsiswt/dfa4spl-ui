@@ -53,23 +53,7 @@ public class HideFeatureHandler extends AbstractHandler  {
 					 */
 					
 					ExtendedColoredJavaEditor editor = (ExtendedColoredJavaEditor) HandlerUtil.getActiveEditor(event).getAdapter(ExtendedColoredJavaEditor.class);
-					
-					/*MarkerSupportView page = getView(event);
-					ExtendedColoredJavaEditor editor = (ExtendedColoredJavaEditor) page.getSite().getWorkbenchWindow().getActivePage().getActiveEditor()
-					.getAdapter(ExtendedColoredJavaEditor.class);*/
-					
-					//IDocumentProvider dp = editor.getDocumentProvider();
 					IDocument d = editor.getDocument();
-					
-					
-					/*
-					ISourceViewer viewer = editor.getViewer();
-					Point selectedRange = viewer.getSelectedRange();
-				    int caretAt = selectedRange.x;
-				    int length = selectedRange.y;
-				        
-				    System.out.println(caretAt+"  "+length);
-					*/
 					
 					/*
 					 * Get the file which will be analysed by the visitor.
@@ -82,8 +66,7 @@ public class HideFeatureHandler extends AbstractHandler  {
 					 */
 					
 					String feature  = (String) ((MarkerItem) marker).getMarker().getAttribute(IMarker.TEXT);
-					//int lineOfMarker = ((Integer) ((MarkerItem) marker).getMarker().getAttribute(IMarker.LINE_NUMBER)).intValue();
-					
+										
 					/*
 					 * This visitor selects the features that will be collapsed.
 					 */
