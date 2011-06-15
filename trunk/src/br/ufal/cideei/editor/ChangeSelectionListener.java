@@ -27,9 +27,9 @@ public class ChangeSelectionListener implements ISelectionListener{
 		if(editor instanceof ExtendedColoredJavaEditor){
 			
 			System.out.println("#####################");
-	
-			// Get source viewer  
-	        ISourceViewer viewer = editor.getViewer();
+			System.out.println("#####################");
+			
+			ISourceViewer viewer = editor.getViewer();
 	        if (viewer == null)
 	            return;
 	
@@ -37,31 +37,61 @@ public class ChangeSelectionListener implements ISelectionListener{
 	        Point selectedRange = viewer.getSelectedRange();
 	        int caretAt = selectedRange.x;
 	        int length = selectedRange.y;
+	        
+	        this.previousCaretPosition = caretAt;
+	        
+	        System.out.println("==========================> " + caretAt);
+			
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			System.out.println("#####################");
 	
-	        // Get the Java element
-	        ITypeRoot element = JavaUI.getEditorInputTypeRoot(editor.getEditorInput());
-	        if (element == null)
-	            return;
+			// Get source viewer  
+	        // Get the caret position	
+	        selectedRange = viewer.getSelectedRange();
+	        caretAt = selectedRange.x;
+	        length = selectedRange.y;
+	        
+	        System.out.println("==========================> " + previousCaretPosition);
+        	System.out.println("==========================> " + caretAt);
+	        
+	        if(this.previousCaretPosition != 0 && caretAt == this.previousCaretPosition){
+		        // Get the Java element
+		        ITypeRoot element = JavaUI.getEditorInputTypeRoot(editor.getEditorInput());
+		        if (element == null)
+		            return;
+		
+		        // Get the compilation unit AST
+		        CompilationUnit ast = SharedASTProvider.getAST(element,SharedASTProvider.WAIT_YES, null);
+		        if (ast == null)
+		            return;
+		
+		        // Find the node at caret position
+		        NodeFinder finder = new NodeFinder(caretAt, length);
+		        ast.accept(finder);
+		     
+		        ASTNode originalNode = finder.getCoveringNode();
+		        
+		        System.out.println("==========================> " + originalNode.toString());
+		        System.out.println("==========================> " + originalNode.getNodeType());
+		        System.out.println("==========================> " + ASTNode.TYPE_DECLARATION_STATEMENT);
+		        
+		        if (originalNode.getNodeType() == ASTNode.ASSIGNMENT || originalNode.getNodeType() == ASTNode.SINGLE_VARIABLE_DECLARATION) {
+		        	
+		        	System.out.println("==========================> " + previousCaretPosition);
+		        	System.out.println("==========================> " + caretAt);
 	
-	        // Get the compilation unit AST
-	        CompilationUnit ast = SharedASTProvider.getAST(element,SharedASTProvider.WAIT_YES, null);
-	        if (ast == null)
-	            return;
-	
-	        // Find the node at caret position
-	        NodeFinder finder = new NodeFinder(caretAt, length);
-	        ast.accept(finder);
-	     
-	        ASTNode originalNode = finder.getCoveringNode();
-        
-	        if (originalNode.getNodeType() == ASTNode.ASSIGNMENT) {
-	        	
-	        	System.out.println("==========================> " + previousCaretPosition);
-	        	System.out.println("==========================> " + caretAt);
-
-	        	previousCaretPosition = caretAt;
-	        	
-	        	System.out.println("==========================> " + originalNode.toString());
+		        	previousCaretPosition = caretAt;
+		        	
+		        	System.out.println("==========================> " + originalNode.toString());
+		        }
+	        }else{
+	        	this.previousCaretPosition = caretAt;
+	        	return;
 	        }
 		}
 		

@@ -3,6 +3,7 @@ package br.ufal.cideei.editor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.source.Annotation;
@@ -110,6 +111,15 @@ public class ExtendedColoredJavaEditor extends ColoredCompilationUnitEditor{
 	
 	public ProjectionAnnotationModel getProjectionAnnotationModel(){
 		return this.annotationModelCIDEEI;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void expandAllAnnotations(int fileLength){
+		this.annotationModelCIDEEI.expandAll(0, fileLength);
+	}
+
+	public void removeAllAnnotations(){
+		this.annotationModelCIDEEI.removeAllAnnotations();
 	}
 	
 }

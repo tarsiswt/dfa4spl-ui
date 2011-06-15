@@ -100,7 +100,13 @@ public class HideFeatureHandler extends AbstractHandler  {
 					 * The action which updates the editor to show the folding areas.
 					 */
 					
+					ArrayList<Position> positionsEmpty = new ArrayList<Position>();
+					
 					if(editor instanceof ExtendedColoredJavaEditor){
+						((ExtendedColoredJavaEditor) editor).expandAllAnnotations(d.getLength());
+						((ExtendedColoredJavaEditor) editor).removeAllAnnotations();
+						
+						((ExtendedColoredJavaEditor) editor).updateFoldingStructure(positionsEmpty);
 						((ExtendedColoredJavaEditor) editor).updateFoldingStructure(positions);
 					}
 								
@@ -150,15 +156,25 @@ public class HideFeatureHandler extends AbstractHandler  {
 										
 				while (iteratorInteger.hasNext()) {
 					if(newAnnotation == true){
-						offset = d.getLineOffset(line - 1);
-						length = d.getLineLength(line - 1);
+						try{
+							offset = d.getLineOffset(line - 1);
+							length = d.getLineLength(line - 1);
+						}catch(BadLocationException e){
+							length = 0;
+							offset = d.getLineOffset(line);
+						}
 						//offset = d.getLineOffset(line);
 						newAnnotation = false;
 					}else{
 						line = iteratorInteger.next().intValue() - 1;
 						if(first == true){
-							offset = d.getLineOffset(line - 1);
-							length = d.getLineLength(line - 1);
+							try{
+								offset = d.getLineOffset(line - 1);
+								length = d.getLineLength(line - 1);
+							}catch(BadLocationException e){
+								length = 0;
+								offset = d.getLineOffset(line);
+							}
 							//offset = d.getLineOffset(line);
 							first = false;
 						}

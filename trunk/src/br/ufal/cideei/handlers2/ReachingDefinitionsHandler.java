@@ -16,6 +16,7 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -202,7 +203,11 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 
 	private void populateView(DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData, IFile fileSelected) {
 		try {
-			fileSelected.deleteMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
+			//fileSelected.deleteMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
+			IMarker[] markers = fileSelected.findMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
+			for (IMarker marker : markers) {
+				marker.delete();
+			}
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
