@@ -71,7 +71,7 @@ public class HideFeatureHandler extends AbstractHandler  {
 					 * This visitor selects the features that will be collapsed.
 					 */
 					
-					Set<String> configuration = this.stringToSet(feature);
+					HashSet<String> configuration = this.stringToSet(feature);
 					SupplementaryConfigurationVisitor supplementaryConfigurationVisitor = new SupplementaryConfigurationVisitor(configuration,file);
 					
 					ICompilationUnit compilationUnit = JavaCore.createCompilationUnitFrom(file);
@@ -156,11 +156,12 @@ public class HideFeatureHandler extends AbstractHandler  {
 										
 				while (iteratorInteger.hasNext()) {
 					if(newAnnotation == true){
+						line = iteratorInteger.next().intValue() - 1;
 						try{
-							offset = d.getLineOffset(line - 1);
 							length = d.getLineLength(line - 1);
+							offset = d.getLineOffset(line - 1);
 						}catch(BadLocationException e){
-							length = 0;
+							length = d.getLineLength(line);
 							offset = d.getLineOffset(line);
 						}
 						//offset = d.getLineOffset(line);
@@ -169,26 +170,28 @@ public class HideFeatureHandler extends AbstractHandler  {
 						line = iteratorInteger.next().intValue() - 1;
 						if(first == true){
 							try{
-								offset = d.getLineOffset(line - 1);
-								length = d.getLineLength(line - 1);
+								offset = d.getLineOffset(line);
 							}catch(BadLocationException e){
-								length = 0;
 								offset = d.getLineOffset(line);
 							}
+							//length = d.getLineLength(line);
 							//offset = d.getLineOffset(line);
 							first = false;
 						}
 					}
-					length = length + d.getLineLength(line);
 					if(previousLine > 0 && line > previousLine + 1){
 						previousLine = line;
 						newAnnotation = true;
 						positions.add(new Position(offset,length));
-						break;
 					}
-					previousLine = line;							
+					if(!newAnnotation){
+						length = length + d.getLineLength(line);
+						previousLine = line;
+					}
 				}
-				positions.add(new Position(offset,length));
+				if(!newAnnotation){
+					positions.add(new Position(offset,length));
+				}
 			}
 		}
 		return positions;
@@ -223,13 +226,13 @@ public class HideFeatureHandler extends AbstractHandler  {
 		return featuresLineNumbers;
 	}
 	
-	private Set<String> stringToSet(String markerConfigColumn){
+	private HashSet<String> stringToSet(String markerConfigColumn){
 		
 		String feature = markerConfigColumn.substring(1, markerConfigColumn.length() - 1);
 		String[] featuresArray = feature.split(",");
-		Set<String> configuration = new HashSet<String>();
+		HashSet<String> configuration = new HashSet<String>();
 		for (String string : featuresArray) {
-			configuration.add(string);
+			configuration.add(string.trim());
 		}
 		return configuration;
 	}

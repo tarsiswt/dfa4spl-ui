@@ -117,12 +117,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			 * TODO: is there a different way of doing this? Maybe eclipse has a
 			 * copy of the compilation unit in memory already?
 			 */
-			ICompilationUnit compilationUnit = JavaCore.createCompilationUnitFrom(textSelectionFile);
-			ASTParser parser = ASTParser.newParser(AST.JLS3);
-			parser.setSource(compilationUnit);
-			parser.setKind(ASTParser.K_COMPILATION_UNIT);
-			parser.setResolveBindings(true);
-			CompilationUnit jdtCompilationUnit = (CompilationUnit) parser.createAST(null);
+			CompilationUnit jdtCompilationUnit = ReachingDefinitionsHandler.getCompilationUnit(textSelectionFile);
 
 			jdtCompilationUnit.accept(selectionNodesVisitor);
 			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
@@ -162,17 +157,14 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 			/*
 			 * Instrumento in-memory Jimple code.
 			 */
-			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
-			instrumentorTransformer.transform2(body, correspondentClasspath);
-
-			FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
+			FeatureTag<Set<String>> bodyFeatureTag = ReachingDefinitionsHandler.getFeatureTags(extracter,
+					correspondentClasspath, body);
 
 			/*
 			 * Build CFG and run the analysis.
 			 */
-			BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
-			LiftedReachingDefinitions reachingDefinitions = new LiftedReachingDefinitions(bodyGraph, bodyFeatureTag.getFeatures());
-			reachingDefinitions.execute();
+			LiftedReachingDefinitions reachingDefinitions = executeLiftedReachingDefinitionAnalysis(
+					body, bodyFeatureTag);
 
 
 			createProvidesGraph(unitsInSelection, reachingDefinitions, body);
@@ -201,7 +193,34 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		return null;
 	}
 
-	private void populateView(DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData, IFile fileSelected) {
+	public static LiftedReachingDefinitions executeLiftedReachingDefinitionAnalysis(
+			Body body, FeatureTag<Set<String>> bodyFeatureTag) {
+		BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
+		LiftedReachingDefinitions reachingDefinitions = new LiftedReachingDefinitions(bodyGraph, bodyFeatureTag.getFeatures());
+		reachingDefinitions.execute();
+		return reachingDefinitions;
+	}
+
+	public static FeatureTag<Set<String>> getFeatureTags(IFeatureExtracter extracter,
+			String correspondentClasspath, Body body) {
+		FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
+		instrumentorTransformer.transform2(body, correspondentClasspath);
+
+		FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
+		return bodyFeatureTag;
+	}
+
+	public static CompilationUnit getCompilationUnit(IFile textSelectionFile) {
+		ICompilationUnit compilationUnit = JavaCore.createCompilationUnitFrom(textSelectionFile);
+		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		parser.setSource(compilationUnit);
+		parser.setKind(ASTParser.K_COMPILATION_UNIT);
+		parser.setResolveBindings(true);
+		CompilationUnit jdtCompilationUnit = (CompilationUnit) parser.createAST(null);
+		return jdtCompilationUnit;
+	}
+
+	public static void populateView(DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData, IFile fileSelected) {
 		try {
 			//fileSelected.deleteMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
 			IMarker[] markers = fileSelected.findMarkers(FeatureMarkerCreator.FMARKER_ID, true, IResource.DEPTH_INFINITE);
@@ -350,5 +369,128 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 		}
 
 		return unitConfigurationMap;
+	}
+	
+	public static DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> createProvidesGraphCaret(Collection<Unit> unitsInSelection, LiftedReachingDefinitions reachingDefinitions,
+			Body body) {
+		Map<Pair<Unit, Set<String>>, Set<Unit>> unitConfigurationMap = new HashMap<Pair<Unit, Set<String>>, Set<Unit>>();
+		FeatureTag bodyFeatureTag = (FeatureTag) body.getTag("FeatureTag");
+		
+		DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>> reachesData = new DirectedMultigraph<Unit, ValueContainerEdge<Set<String>>>(ConfigurationEdgeFactory.getInstance());
+		
+		// for every unit in the selection...
+		for (Unit unitFromSelection : unitsInSelection) {
+			if (unitFromSelection instanceof DefinitionStmt) {
+				/*
+				 * exclude definitions when it's $temp on the leftOp.
+				 */
+				DefinitionStmt definition = (DefinitionStmt) unitFromSelection;
+				Local leftOp = (Local) definition.getLeftOp();
+				if (leftOp.getName().contains("$")) {
+					continue;
+				}
+				
+				Set<String> featuresThatUseDefinition = new HashSet<String>();
+				
+				// for every unit in the body...
+				Iterator<Unit> iterator = body.getUnits().snapshotIterator();
+				while (iterator.hasNext()) {
+					Unit nextUnit = iterator.next();
+					FeatureTag nextUnitTag = (FeatureTag) nextUnit.getTag("FeatureTag");
+					
+					List useAndDefBoxes = nextUnit.getUseAndDefBoxes();
+					for (Object object : useAndDefBoxes) {
+						ValueBox vbox = (ValueBox) object;
+						if (vbox.getValue().equivTo(leftOp)) {
+							featuresThatUseDefinition.addAll(nextUnitTag);
+						}
+					}
+					
+					LiftedFlowSet<Collection<Set<Object>>> liftedFlowAfter = reachingDefinitions.getFlowAfter(nextUnit);
+					FlowSet[] lattices = liftedFlowAfter.getLattices();
+					
+					// and for every configuration...
+					for (int latticeIndex = 0; latticeIndex < lattices.length; latticeIndex++) {
+						FlowSet flowSet = lattices[latticeIndex];
+						Set<String> currConfiguration = bodyFeatureTag.getConfigurationForId(latticeIndex);
+						
+						// if the unit belongs to the current configuration...
+						if (nextUnitTag.belongsToConfiguration(currConfiguration)) {
+							
+							// if the definition reaches this unit...
+							if (flowSet.contains(definition)) {
+								List<ValueBox> useBoxes = nextUnit.getUseBoxes();
+								for (ValueBox vbox : useBoxes) {
+									/*
+									 * and the definition is used, add to the
+									 * map (graph)...
+									 */
+									if (vbox.getValue().equivTo(leftOp)) {
+										Pair<Unit, Set<String>> currentPair = new Pair<Unit, Set<String>>(definition, currConfiguration);
+										Set<Unit> unitConfigurationReachesSet = unitConfigurationMap.get(currentPair);
+										
+										if (!reachesData.containsVertex(definition)) {
+											reachesData.addVertex(definition);
+										}
+										if (!reachesData.containsVertex(nextUnit)) {
+											reachesData.addVertex(nextUnit);
+										}
+										
+										Set<ValueContainerEdge<Set<String>>> allEdges = reachesData.getAllEdges(definition, nextUnit);
+										if (allEdges.size() >= 1) {
+											int diffCounter = 0;
+											Iterator<ValueContainerEdge<Set<String>>> edgesIterator = allEdges.iterator();
+											Set<ValueContainerEdge<Set<String>>> edgeRemovalSchedule = new HashSet<ValueContainerEdge<Set<String>>>();
+											while (edgesIterator.hasNext()) {
+												ValueContainerEdge<Set<String>> valueContainerEdge = (ValueContainerEdge<Set<String>>) edgesIterator.next();
+												Set<String> valueConfiguration = valueContainerEdge.getValue();
+												Integer idForConfiguration = 0;// bodyFeatureTag.getConfigurationForId(valueConfiguration);
+												FlowSet flowSetFromOtherReached = lattices[idForConfiguration];
+												if (flowSetFromOtherReached.equals(flowSet)) {
+													/*
+													 * Se a configuração que
+													 * estiver "querendo" entrar
+													 * for menor, então ela
+													 * expulsará os maiores.
+													 */
+													if (valueConfiguration.size() > currConfiguration.size()
+															&& featuresThatUseDefinition.containsAll(currConfiguration)) {
+														edgeRemovalSchedule.add(valueContainerEdge);
+														ValueContainerEdge<Set<String>> addEdge = reachesData.addEdge(definition, nextUnit);
+														addEdge.setValue(currConfiguration);
+														continue;
+													}
+												} else {
+													diffCounter++;
+												}
+											}
+											if (diffCounter == allEdges.size() && featuresThatUseDefinition.containsAll(currConfiguration)) {
+												ValueContainerEdge<Set<String>> addEdge = reachesData.addEdge(definition, nextUnit);
+												addEdge.setValue(currConfiguration);
+											}
+											reachesData.removeAllEdges(edgeRemovalSchedule);
+										} else {
+											ValueContainerEdge<Set<String>> addEdge = reachesData.addEdge(definition, nextUnit);
+											addEdge.setValue(currConfiguration);
+										}
+										
+										if (unitConfigurationReachesSet == null) {
+											unitConfigurationReachesSet = new HashSet<Unit>();
+											unitConfigurationReachesSet.add(nextUnit);
+											unitConfigurationMap.put(currentPair, unitConfigurationReachesSet);
+										} else {
+											unitConfigurationReachesSet.add(nextUnit);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				System.out.println("features that use the definition at issue: " + featuresThatUseDefinition);
+			}
+		}
+		
+		return reachesData;
 	}
 }

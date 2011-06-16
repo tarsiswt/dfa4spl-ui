@@ -1,8 +1,8 @@
 package br.ufal.cideei.editor;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.jdt.core.ITypeRoot;
 import org.eclipse.jdt.core.dom.ASTNode;
-import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.internal.corext.dom.NodeFinder;
 import org.eclipse.jdt.ui.JavaUI;
@@ -17,8 +17,20 @@ import org.eclipse.ui.IWorkbenchPart;
 @SuppressWarnings("restriction")
 public class ChangeSelectionListener implements ISelectionListener{
 
-	private int previousCaretPosition;
+	private int selectionLength;
+	private int caretPosition;
+	private ExtendedColoredJavaEditor editor;
+	private Thread timer;
+	private IFile file;
 	
+	public int getCaretPosition() {
+		return caretPosition;
+	}
+	
+	public IFile getFile() {
+		return file;
+	}
+
 	@Override
 	public void selectionChanged(IWorkbenchPart arg0, ISelection arg1) {
 		
@@ -26,75 +38,41 @@ public class ChangeSelectionListener implements ISelectionListener{
 		
 		if(editor instanceof ExtendedColoredJavaEditor){
 			
-			System.out.println("#####################");
-			System.out.println("#####################");
+			this.editor = editor;
 			
+			this.file = (IFile) editor.getEditorInput().getAdapter(IFile.class);
+			
+			// Get source viewer  
 			ISourceViewer viewer = editor.getViewer();
 	        if (viewer == null)
 	            return;
 	
 	        // Get the caret position	
 	        Point selectedRange = viewer.getSelectedRange();
-	        int caretAt = selectedRange.x;
-	        int length = selectedRange.y;
-	        
-	        this.previousCaretPosition = caretAt;
-	        
-	        System.out.println("==========================> " + caretAt);
+	        this.caretPosition = selectedRange.x;
+	        this.selectionLength = selectedRange.y;
 			
-			try {
-				Thread.sleep(3000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			
-			System.out.println("#####################");
-	
-			// Get source viewer  
-	        // Get the caret position	
-	        selectedRange = viewer.getSelectedRange();
-	        caretAt = selectedRange.x;
-	        length = selectedRange.y;
-	        
-	        System.out.println("==========================> " + previousCaretPosition);
-        	System.out.println("==========================> " + caretAt);
-	        
-	        if(this.previousCaretPosition != 0 && caretAt == this.previousCaretPosition){
-		        // Get the Java element
-		        ITypeRoot element = JavaUI.getEditorInputTypeRoot(editor.getEditorInput());
-		        if (element == null)
-		            return;
-		
-		        // Get the compilation unit AST
-		        CompilationUnit ast = SharedASTProvider.getAST(element,SharedASTProvider.WAIT_YES, null);
-		        if (ast == null)
-		            return;
-		
-		        // Find the node at caret position
-		        NodeFinder finder = new NodeFinder(caretAt, length);
-		        ast.accept(finder);
-		     
-		        ASTNode originalNode = finder.getCoveringNode();
-		        
-		        System.out.println("==========================> " + originalNode.toString());
-		        System.out.println("==========================> " + originalNode.getNodeType());
-		        System.out.println("==========================> " + ASTNode.TYPE_DECLARATION_STATEMENT);
-		        
-		        if (originalNode.getNodeType() == ASTNode.ASSIGNMENT || originalNode.getNodeType() == ASTNode.SINGLE_VARIABLE_DECLARATION) {
-		        	
-		        	System.out.println("==========================> " + previousCaretPosition);
-		        	System.out.println("==========================> " + caretAt);
-	
-		        	previousCaretPosition = caretAt;
-		        	
-		        	System.out.println("==========================> " + originalNode.toString());
-		        }
-	        }else{
-	        	this.previousCaretPosition = caretAt;
-	        	return;
-	        }
+        	this.timer = new CaretTimer(this);
+        	this.timer.start();
 		}
 		
+	}
+
+	public ASTNode getNode() {
+		
+		// Get the Java element
+		ITypeRoot element = JavaUI.getEditorInputTypeRoot(this.editor.getEditorInput());
+
+		// Get the compilation unit AST
+		CompilationUnit ast = SharedASTProvider.getAST(element,SharedASTProvider.WAIT_YES, null);
+
+		// Find the node at caret position
+		NodeFinder finder = new NodeFinder(this.caretPosition, this.selectionLength);
+		ast.accept(finder);
+    
+		ASTNode originalNode = finder.getCoveringNode();
+		
+		return originalNode;
 	}
 
 }
