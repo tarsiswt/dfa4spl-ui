@@ -141,7 +141,7 @@ public class ChainOfAssignments extends AbstractHandler {
 			/*
 			 * Instrumento the Jimple in-memory code.
 			 */
-			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
+			FeatureModelInstrumentorTransformer instrumentorTransformer = new FeatureModelInstrumentorTransformer(null, extracter, correspondentClasspath);
 			instrumentorTransformer.transform2(body, correspondentClasspath);
 
 			FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");

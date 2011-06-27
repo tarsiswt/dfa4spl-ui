@@ -120,7 +120,7 @@ public class UninitializedVariablesHandler extends AbstractHandler {
 			/*
 			 * Instrumento in-memory Jimple code.
 			 */
-			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
+			FeatureModelInstrumentorTransformer instrumentorTransformer = new FeatureModelInstrumentorTransformer(null, extracter, correspondentClasspath);
 			instrumentorTransformer.transform2(body, correspondentClasspath);
 			FeatureTag bodyFeatureTag = (FeatureTag) body.getTag("FeatureTag");
 

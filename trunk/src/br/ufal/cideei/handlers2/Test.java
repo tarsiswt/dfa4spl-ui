@@ -28,7 +28,7 @@ import soot.toolkits.graph.BriefUnitGraph;
 import br.ufal.cideei.features.CIDEFeatureExtracterFactory;
 import br.ufal.cideei.features.IFeatureExtracter;
 import br.ufal.cideei.soot.SootManager;
-import br.ufal.cideei.soot.analyses.reachingdefs.SimpleReachedDefinitionsAnalysis;
+import br.ufal.cideei.soot.analyses.reachingdefs.SimpleReachingDefinitions;
 import br.ufal.cideei.soot.instrument.FeatureModelInstrumentorTransformer;
 import br.ufal.cideei.soot.instrument.FeatureTag;
 import br.ufal.cideei.soot.instrument.asttounit.ASTNodeUnitBridge;
@@ -130,7 +130,7 @@ public class Test extends AbstractHandler {
 			 * Instrumento the Jimple in-memory code.
 			 */
 
-			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
+			FeatureModelInstrumentorTransformer instrumentorTransformer = new FeatureModelInstrumentorTransformer(null, extracter, correspondentClasspath);
 			instrumentorTransformer.transform2(body, correspondentClasspath);
 
 			FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
@@ -139,15 +139,14 @@ public class Test extends AbstractHandler {
 			 * Build CFG and run the analysis.
 			 */
 			BriefUnitGraph bodyGraph = new BriefUnitGraph(body);
-			SimpleReachedDefinitionsAnalysis rd = new SimpleReachedDefinitionsAnalysis(bodyGraph);
-			
+			SimpleReachingDefinitions rd = new SimpleReachingDefinitions(bodyGraph);
+
 			Iterator<Unit> it = bodyGraph.iterator();
 			while (it.hasNext()) {
 				Unit unit = (Unit) it.next();
 				System.out.println(unit);
 				System.out.println(rd.getFlowAfter(unit));
 			}
-
 
 		} catch (Exception ex) {
 			ex.printStackTrace();

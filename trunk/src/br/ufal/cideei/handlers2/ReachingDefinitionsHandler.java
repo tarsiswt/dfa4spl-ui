@@ -203,7 +203,7 @@ public class ReachingDefinitionsHandler extends AbstractHandler {
 
 	public static FeatureTag<Set<String>> getFeatureTags(IFeatureExtracter extracter,
 			String correspondentClasspath, Body body) {
-		FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
+		FeatureModelInstrumentorTransformer instrumentorTransformer = new FeatureModelInstrumentorTransformer(null,extracter, correspondentClasspath);
 		instrumentorTransformer.transform2(body, correspondentClasspath);
 
 		FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");

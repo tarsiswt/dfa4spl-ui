@@ -144,7 +144,7 @@ public class ReachingDefinitionsAllFeatureHandler extends AbstractHandler {
 			Set<ASTNode> selectionNodes = allFeatureNodes.getNodes();
 
 			jdtCompilationUnit.accept(selectionNodesVisitor);
-//			Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
+			// Set<ASTNode> selectionNodes = selectionNodesVisitor.getNodes();
 
 			for (ASTNode astNode : selectionNodes) {
 				ReachingDefinitionsAllFeatureHandler.lineNumbers.add(jdtCompilationUnit.getLineNumber(astNode.getStartPosition()));
@@ -181,7 +181,7 @@ public class ReachingDefinitionsAllFeatureHandler extends AbstractHandler {
 			/*
 			 * Instrumento in-memory Jimple code.
 			 */
-			FeatureModelInstrumentorTransformer instrumentorTransformer = FeatureModelInstrumentorTransformer.v(extracter, correspondentClasspath);
+			FeatureModelInstrumentorTransformer instrumentorTransformer = new FeatureModelInstrumentorTransformer(null, extracter, correspondentClasspath);
 			instrumentorTransformer.transform2(body, correspondentClasspath);
 
 			FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
@@ -193,10 +193,9 @@ public class ReachingDefinitionsAllFeatureHandler extends AbstractHandler {
 			LiftedReachingDefinitions reachingDefinitions = new LiftedReachingDefinitions(bodyGraph, bodyFeatureTag.getFeatures());
 			reachingDefinitions.execute();
 
-
 			createProvidesGraph(unitsInSelection, reachingDefinitions, body);
 			populateView(reachesData, textSelectionFile);
-			
+
 			/*
 			 * TODO: This block generates the .dot file for the graph
 			 * representing the analysis reasoning. This is for debuggin only;
