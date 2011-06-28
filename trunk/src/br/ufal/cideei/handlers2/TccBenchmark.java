@@ -102,7 +102,7 @@ public class TccBenchmark extends AbstractHandler {
 					return null;
 				}
 
-				FeatureModelInstrumentorTransformer instrumentorTransformer = new FeatureModelInstrumentorTransformer(null, extracter, correspondentClasspath);
+				FeatureModelInstrumentorTransformer instrumentorTransformer = new FeatureModelInstrumentorTransformer(extracter, correspondentClasspath);
 				instrumentorTransformer.transform2(body, correspondentClasspath);
 
 				FeatureTag<Set<String>> bodyFeatureTag = (FeatureTag<Set<String>>) body.getTag("FeatureTag");
